@@ -65,6 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return
+    // While signup is still writing the profile, let the signup page choose the next screen.
+    if (user && isProfileWriteInFlight()) return
     if (!user && matches(pathname, PROTECTED_ROUTES)) {
       router.replace('/login')
     } else if (user && (matches(pathname, AUTH_ROUTES) || pathname === '/')) {

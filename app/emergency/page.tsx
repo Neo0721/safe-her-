@@ -87,6 +87,14 @@ function EmergencyScreen() {
   const isDrillRef = useRef(wantsDrill)
   const settingsRef = useRef<SosSettings | null>(null)
 
+  // Match the Android status-bar strip to this screen's dark-red background.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--statusbar-bg', '#12060a')
+    return () => {
+      document.documentElement.style.removeProperty('--statusbar-bg')
+    }
+  }, [])
+
   // ---- location uploads -------------------------------------------------------------------
   const uploadPoint = useCallback(async (id: string, p: { lat: number; lng: number; accuracy: number; at: string }) => {
     await apiJson('/api/location', {

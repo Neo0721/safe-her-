@@ -41,7 +41,7 @@ export default function SignupPage() {
       toast.success('Account created. Welcome to SafeHer!')
       router.replace('/permissions')
     } catch (error) {
-      console.error('Signup error:', error)
+      console.warn('Signup failed:', (error as { code?: string }).code)
       toast.error(authErrorMessage(error))
     } finally {
       setLoading(false)

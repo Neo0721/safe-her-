@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { AndroidBackHandler } from '@/components/android-back-handler'
 import { FocusScroll } from '@/components/focus-scroll'
+import { SystemBarsSync } from '@/components/system-bars-sync'
 import './globals.css'
 
 const inter = Inter({
@@ -67,8 +68,11 @@ export default function RootLayout({
           <AuthProvider>
             {children}
           </AuthProvider>
+          {/* Opaque strip behind the status bar so scrolled content never slides under the clock/icons. */}
+          <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[2000]" style={{ height: 'var(--sat)', background: 'var(--statusbar-bg, var(--background))' }} />
           <AndroidBackHandler />
           <FocusScroll />
+          <SystemBarsSync />
           <Toaster position="top-center" />
         </ThemeProvider>
       </body>

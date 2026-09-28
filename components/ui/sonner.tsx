@@ -10,6 +10,9 @@ function Toaster({ ...props }: ToasterProps) {
     <Sonner
       theme={theme as ToasterProps['theme']}
       className="toaster group"
+      // Keep toasts below the Android status bar / notch.
+      offset={{ top: 'calc(var(--sat) + 12px)' }}
+      mobileOffset={{ top: 'calc(var(--sat) + 12px)' }}
       toastOptions={{
         classNames: {
           toast:

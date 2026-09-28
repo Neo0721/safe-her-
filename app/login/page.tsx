@@ -29,7 +29,7 @@ export default function LoginPage() {
       toast.success('Welcome back to SafeHer')
       router.replace('/home')
     } catch (error) {
-      console.error('Login error:', error)
+      console.warn('Login failed:', (error as { code?: string }).code)
       toast.error(authErrorMessage(error))
     } finally {
       setLoading(false)
@@ -43,7 +43,7 @@ export default function LoginPage() {
       toast.success('Signed in with Google')
       router.replace('/home')
     } catch (error) {
-      console.error('Google sign-in error:', error)
+      console.warn('Google sign-in failed:', (error as { code?: string; message?: string }).code ?? (error as Error).message)
       toast.error(authErrorMessage(error))
     } finally {
       setLoading(false)

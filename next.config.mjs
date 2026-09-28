@@ -18,6 +18,9 @@ const nextConfig = {
   // Do not generate AGENTS.md / CLAUDE.md files into the project.
   agentRules: false,
 
+  // The dev badge would cover the bottom of the UI on a phone.
+  devIndicators: false,
+
   allowedDevOrigins: devOrigins,
 
   images: {

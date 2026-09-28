@@ -14,10 +14,13 @@ interface MapViewProps {
   /** Keep the map centred on the position as it changes. */
   follow?: boolean
   markerLabel?: string
+  /** Pixels at the bottom covered by an overlay (e.g. a bottom sheet); the position is centred in the visible part. */
+  bottomInset?: number
+  showZoom?: boolean
 }
 
 /** Leaflet + OpenStreetMap map showing a real position, an accuracy circle and an optional route. */
-export function MapView({ latitude, longitude, accuracy, path, follow = true, markerLabel = 'You are here' }: MapViewProps) {
+export function MapView({ latitude, longitude, accuracy, path, follow = true, markerLabel = 'You are here', bottomInset = 0, showZoom = true }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Leaflet.Map | null>(null)
   const markerRef = useRef<Leaflet.CircleMarker | null>(null)
@@ -69,7 +72,7 @@ export function MapView({ latitude, longitude, accuracy, path, follow = true, ma
       : [pathRef.current![0].lat, pathRef.current![0].lng]
     const map = L.map(containerRef.current, { zoomControl: false, attributionControl: true }).setView(start, 16)
     map.attributionControl.setPrefix(false)
-    L.control.zoom({ position: 'topright' }).addTo(map)
+    if (showZoom) L.control.zoom({ position: 'topright' }).addTo(map)
 
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -93,7 +96,7 @@ export function MapView({ latitude, longitude, accuracy, path, follow = true, ma
       routeRef.current = null
       firstFixRef.current = true
     }
-  }, [ready, shouldExist])
+  }, [ready, shouldExist, showZoom])
 
   // Update marker, accuracy circle and follow behaviour as fixes arrive.
   useEffect(() => {
@@ -131,10 +134,12 @@ export function MapView({ latitude, longitude, accuracy, path, follow = true, ma
     }
 
     if (follow || firstFixRef.current) {
-      map.setView(point, firstFixRef.current ? 16 : map.getZoom())
+      map.setView(point, firstFixRef.current ? 16 : map.getZoom(), { animate: false })
+      // Shift the view so the marker sits in the middle of the part not covered by the bottom sheet.
+      if (bottomInset > 0) map.panBy([0, bottomInset / 2], { animate: false })
       firstFixRef.current = false
     }
-  }, [latitude, longitude, accuracy, follow, hasPosition, ready, markerLabel])
+  }, [latitude, longitude, accuracy, follow, hasPosition, ready, markerLabel, bottomInset])
 
   // Draw / update the route line.
   useEffect(() => {

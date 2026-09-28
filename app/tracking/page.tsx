@@ -38,6 +38,8 @@ export default function TrackingPage() {
   const [saved, setSaved] = useState(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [stopping, setStopping] = useState(false)
+  const [sheetHeight, setSheetHeight] = useState(0)
+  const sheetRef = useRef<HTMLElement>(null)
 
   const battery = useBattery()
   const network = useNetwork()
@@ -152,12 +154,27 @@ export default function TrackingPage() {
     router.replace('/home')
   }
 
+  // Keep the map's marker in the visible area above the bottom sheet.
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => setSheetHeight(el.offsetHeight))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   const online = network.connected
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-background">
       <div className="absolute inset-0">
-        <MapView latitude={fix?.lat ?? null} longitude={fix?.lng ?? null} accuracy={fix?.accuracy ?? null} />
+        <MapView
+          latitude={fix?.lat ?? null}
+          longitude={fix?.lng ?? null}
+          accuracy={fix?.accuracy ?? null}
+          bottomInset={sheetHeight}
+          showZoom={false}
+        />
       </div>
 
       <header className="pt-safe relative z-[1000] flex items-center justify-between gap-2 p-4">
@@ -182,6 +199,7 @@ export default function TrackingPage() {
       <div className="flex-1" />
 
       <motion.section
+        ref={sheetRef}
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}

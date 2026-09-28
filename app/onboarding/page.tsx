@@ -13,25 +13,25 @@ const slides = [
   {
     title: 'Stay Safe Anywhere',
     description:
-      'Quickly alert your trusted contacts during emergencies — wherever you are, day or night.',
+      'Keep a one-touch SOS in your pocket, with your emergency contacts and your real GPS location ready when you need them.',
     image: '/onboarding-safe.png',
   },
   {
-    title: 'Gesture-Based SOS',
+    title: 'Press-and-Hold SOS',
     description:
-      'Turn your phone upside down and press the volume buttons in your secret pattern. Emergency mode activates automatically — no unlocking needed.',
+      'Hold the red SOS button for a few seconds to start an emergency. The hold time prevents accidental alerts, and you choose how long it is.',
     image: '/onboarding-gesture.png',
   },
   {
-    title: 'Instant Emergency Response',
+    title: 'Help in One Tap',
     description:
-      'Once activated, SafeHer calls your emergency contact, sends SMS alerts, shares your live location continuously, and sends route updates to trusted contacts.',
+      'SafeHer records your live location and puts call and SMS buttons for the emergency number and your contacts on one screen. Your phone’s dialer and SMS app place the call and send the message.',
     image: '/onboarding-response.png',
   },
   {
-    title: "You're Protected",
+    title: "You're in Control",
     description:
-      'Everything is set up to keep you safe. Start using SafeHer and carry peace of mind with you.',
+      'Practice with a drill any time, review every SOS in your history, and end an alert the moment you are safe.',
     image: '/onboarding-protected.png',
   },
 ]

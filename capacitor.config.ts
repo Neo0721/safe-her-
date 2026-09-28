@@ -34,7 +34,8 @@ if (rawUrl) {
 try {
   fs.writeFileSync(
     path.join(process.cwd(), 'capacitor-www', 'server-url.js'),
-    `window.SAFEHER_SERVER_URL = ${JSON.stringify(serverUrl ?? '')};\n`
+    `window.SAFEHER_SERVER_URL = ${JSON.stringify(serverUrl ?? '')};\n` +
+      `window.SAFEHER_EMERGENCY_NUMBER = ${JSON.stringify(process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || '112')};\n`
   );
 } catch {
   /* capacitor-www is optional at config-load time */

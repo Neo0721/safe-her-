@@ -12,11 +12,13 @@
     <h1>Can&rsquo;t reach SafeHer</h1>
     <p>Check that your phone is online and that the SafeHer server is running.</p>
     <p id="target" class="small"></p>
-    <p>If you need help right now, call your local emergency number from your phone&rsquo;s dialer.</p>
+    <a id="sos" class="sos" href="tel:112">Call emergency number</a>
     <button id="retry" type="button">Try again</button>
   </main>
   <script>
     var url = window.SAFEHER_SERVER_URL || '';
+    var num = window.SAFEHER_EMERGENCY_NUMBER || '112';
+    var sos = document.getElementById('sos'); sos.href = 'tel:' + num; sos.textContent = 'Call ' + num + ' now';
     document.getElementById('target').textContent = url ? 'Server: ' + url : '';
     document.getElementById('retry').addEventListener('click', function () {
       if (url) window.location.href = url; else window.location.reload();

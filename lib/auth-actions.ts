@@ -135,7 +135,14 @@ export function authErrorMessage(error: unknown): string {
       return 'This account has been disabled.'
   }
   const message = e?.message ?? ''
-  if (/cancel/i.test(message)) return 'Google sign-in was cancelled.'
+  if (/cancel/i.test(message) || /cancel/i.test(String(e?.code ?? ''))) return 'Google sign-in was cancelled.'
+  // Native (Capacitor) failures carry codes like UNIMPLEMENTED; these mean the Android build lacks Google config.
+  if (typeof e?.code === 'string' && !e.code.startsWith('auth/') && /^[A-Z_]+$/.test(e.code)) {
+    return 'Google sign-in is not set up for this app build yet. Use email and password, or ask the developer to add google-services.json.'
+  }
+  if (/unimplemented|default_web_client_id|developer_error|no credential|12500|10:/i.test(message)) {
+    return 'Google sign-in is not set up for this app build yet. Use email and password, or ask the developer to add google-services.json.'
+  }
   if (error instanceof ApiError) return error.message
   return 'Sign-in failed. Please try again.'
 }

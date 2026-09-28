@@ -133,7 +133,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <Avatar className="size-24 ring-4 ring-card">
                   <AvatarImage src={profile?.photo_url || user?.photoURL || undefined} alt={profile?.full_name || "User"} />
-                  <AvatarFallback>{initials}</AvatarFallback>
+                  <AvatarFallback className="text-2xl font-semibold">{initials}</AvatarFallback>
                 </Avatar>
                 <button
                   aria-label="Edit Profile"

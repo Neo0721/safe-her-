@@ -1,0 +1,215 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-emergency: var(--emergency);
+  --color-emergency-foreground: var(--emergency-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 1.25rem;
+
+  --background: #FAFAFC;
+  --foreground: #1F2937;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
+
+  --primary: #7C3AED;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #A78BFA;
+  --secondary-foreground: #FFFFFF;
+
+  --muted: #E5E7EB;
+  --muted-foreground: #6B7280;
+
+  --accent: #F472B6;
+  --accent-foreground: #FFFFFF;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  --emergency: #EF4444;
+  --emergency-foreground: #FFFFFF;
+
+  --success: #22C55E;
+  --success-foreground: #FFFFFF;
+
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #7C3AED;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+  --card: #1E293B;
+  --card-foreground: #F8FAFC;
+  --popover: #1E293B;
+  --popover-foreground: #F8FAFC;
+
+  --primary: #A78BFA;
+  --primary-foreground: #0F172A;
+
+  --secondary: #7C3AED;
+  --secondary-foreground: #F8FAFC;
+
+  --muted: #334155;
+  --muted-foreground: #94A3B8;
+
+  --accent: #F472B6;
+  --accent-foreground: #0F172A;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  --emergency: #EF4444;
+  --emergency-foreground: #FFFFFF;
+
+  --success: #22C55E;
+  --success-foreground: #0F172A;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #A78BFA;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    /* Android WebView: no sideways scrolling and no pull-to-refresh style overscroll. */
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
+    /* Insets come from Capacitor's SystemBars (--safe-area-inset-*) or env() in a browser. */
+    --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+    --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+    --sal: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+    --sar: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01';
+    overflow-x: hidden;
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+  }
+  /* Comfortable touch targets for anything tappable. */
+  button,
+  [role='button'],
+  a[href],
+  select,
+  summary {
+    touch-action: manipulation;
+  }
+  /* 16px inputs stop Android/iOS from zooming the page on focus. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+.pt-safe {
+  padding-top: var(--sat);
+}
+.pb-safe {
+  padding-bottom: var(--sab);
+}
+.text-10px {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+@keyframes sos-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 28px rgba(229, 57, 53, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes emergency-flash {
+  0%,
+  100% {
+    background-color: #12060a;
+  }
+  50% {
+    background-color: #2a0b0f;
+  }
+}
+
+.animate-sos-pulse {
+  animation: sos-pulse 2s infinite;
+}
+.animate-float-slow {
+  animation: float-slow 4s ease-in-out infinite;
+}
+.animate-emergency-flash {
+  animation: emergency-flash 1.4s ease-in-out infinite;
+}
+
+/* subtle scrollbar hiding for mobile shells */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

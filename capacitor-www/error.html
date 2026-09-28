@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SafeHer</title>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="server-url.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Can&rsquo;t reach SafeHer</h1>
+    <p>Check that your phone is online and that the SafeHer server is running.</p>
+    <p id="target" class="small"></p>
+    <p>If you need help right now, call your local emergency number from your phone&rsquo;s dialer.</p>
+    <button id="retry" type="button">Try again</button>
+  </main>
+  <script>
+    var url = window.SAFEHER_SERVER_URL || '';
+    document.getElementById('target').textContent = url ? 'Server: ' + url : '';
+    document.getElementById('retry').addEventListener('click', function () {
+      if (url) window.location.href = url; else window.location.reload();
+    });
+  </script>
+</body>
+</html>

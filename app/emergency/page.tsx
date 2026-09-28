@@ -82,6 +82,9 @@ function EmergencyScreen() {
   const lastSavedRef = useRef<{ at: number; lat: number; lng: number } | null>(null)
   const bufferRef = useRef<{ lat: number; lng: number; accuracy: number; at: string }[]>([])
   const sosIdRef = useRef<string | null>(null)
+  const recordedRef = useRef(false) // true once the server has this SOS event
+  const flushingRef = useRef(false)
+  const isDrillRef = useRef(wantsDrill)
   const settingsRef = useRef<SosSettings | null>(null)
 
   // ---- location uploads -------------------------------------------------------------------
@@ -92,22 +95,48 @@ function EmergencyScreen() {
     })
   }, [])
 
+  /** Makes sure the server has this SOS event (it may have been unreachable when the SOS started). */
+  const ensureRecorded = useCallback(async (): Promise<boolean> => {
+    const id = sosIdRef.current
+    if (!id) return false
+    if (recordedRef.current) return true
+    try {
+      await apiJson('/api/sos', { method: 'POST', json: { id, is_test: isDrillRef.current } })
+      recordedRef.current = true
+      setRecordState('recorded')
+      setRecordError(null)
+      return true
+    } catch (error) {
+      setRecordState('failed')
+      setRecordError(errorMessage(error))
+      return false
+    }
+  }, [])
+
   const flushBuffer = useCallback(async () => {
     const id = sosIdRef.current
-    while (id && bufferRef.current.length > 0) {
-      const next = bufferRef.current[0]
-      try {
-        await uploadPoint(id, next)
-        bufferRef.current.shift()
-        setSavedPoints((n) => n + 1)
-      } catch (error) {
-        // A 4xx means the server will never accept this point; drop it. Network errors stay buffered.
-        if (error instanceof ApiError && !error.isNetwork && error.status < 500) bufferRef.current.shift()
-        else break
+    if (!id || flushingRef.current) return
+    flushingRef.current = true
+    try {
+      // Points are only sent once the event exists on the server; otherwise they stay buffered.
+      if (bufferRef.current.length > 0 && !(await ensureRecorded())) return
+      while (bufferRef.current.length > 0) {
+        const next = bufferRef.current[0]
+        try {
+          await uploadPoint(id, next)
+          bufferRef.current.shift()
+          setSavedPoints((n) => n + 1)
+        } catch (error) {
+          // A 4xx means the server will never accept this point; drop it. Network errors stay buffered.
+          if (error instanceof ApiError && !error.isNetwork && error.status < 500) bufferRef.current.shift()
+          else break
+        }
       }
+    } finally {
+      flushingRef.current = false
+      setFailedUploads(bufferRef.current.length)
     }
-    setFailedUploads(bufferRef.current.length)
-  }, [uploadPoint])
+  }, [uploadPoint, ensureRecorded])
 
   const handleFix = useCallback(
     (next: Fix) => {
@@ -202,27 +231,34 @@ function EmergencyScreen() {
     // Resume an SOS already running on this device rather than creating a duplicate.
     const existing = getActiveSos(uid)
     let id: string | null = null
+    let resumed: { startedAt: number; isTest: boolean } | null = null
     if (existing) {
       try {
         const event = await apiJson<SosEvent>(`/api/sos?id=${encodeURIComponent(existing.id)}`)
         if (event.status === 'Active') {
           id = event.id
-          setIsDrill(event.is_test === 1)
+          resumed = { startedAt: existing.startedAt, isTest: event.is_test === 1 }
+          recordedRef.current = true
           setRecordState('recorded')
         } else {
           clearActiveSos()
         }
       } catch (error) {
-        if (error instanceof ApiError && error.status === 404) clearActiveSos()
-        else {
-          // Server unreachable: keep going with the local id; uploads are buffered.
+        if (error instanceof ApiError && error.status === 404) {
+          clearActiveSos()
+        } else {
+          // Server unreachable: keep going with the local id; the record is re-sent when it is back.
           id = existing.id
-          setIsDrill(existing.isTest)
+          resumed = { startedAt: existing.startedAt, isTest: existing.isTest }
           setRecordState('failed')
           setRecordError(errorMessage(error))
         }
       }
     }
+
+    const drill = resumed ? resumed.isTest : wantsDrill
+    isDrillRef.current = drill
+    setIsDrill(drill)
 
     if (!id) {
       if (!wantsStart) {
@@ -230,29 +266,28 @@ function EmergencyScreen() {
         return
       }
       id = generateUUID()
-      try {
-        await apiJson('/api/sos', { method: 'POST', json: { id, is_test: wantsDrill } })
-        setRecordState('recorded')
-      } catch (error) {
-        setRecordState('failed')
-        setRecordError(errorMessage(error))
-      }
-      setActiveSos({ id, uid, isTest: wantsDrill, startedAt: Date.now() })
+      setActiveSos({ id, uid, isTest: drill, startedAt: Date.now() })
+      sosIdRef.current = id
+      setSosId(id)
+      void ensureRecorded() // never block GPS or the call buttons on the network
+    } else {
+      sosIdRef.current = id
+      setSosId(id)
     }
 
-    sosIdRef.current = id
-    setSosId(id)
-    if (!wantsDrill && !existing) setCountdown(CONFIG.sosCancelDelaySeconds)
-    else if (existing && !existing.isTest) {
-      const elapsed = Math.floor((Date.now() - existing.startedAt) / 1000)
+    // The end-delay counts from the real start time, also when resuming.
+    if (!drill) {
+      const startedAt = resumed ? resumed.startedAt : Date.now()
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000)
       setCountdown(Math.max(CONFIG.sosCancelDelaySeconds - elapsed, 0))
     }
 
-    await Promise.all([contactsPromise, settingsPromise])
+    // GPS must never wait on the server: start it right away, then apply preferences once loaded.
     void startGps()
+    await Promise.all([contactsPromise, settingsPromise])
     if (settingsRef.current?.audio_recording === 1) void startRecording()
     void flushBuffer()
-  }, [uid, wantsStart, wantsDrill, router, startGps, startRecording, flushBuffer])
+  }, [uid, wantsStart, wantsDrill, router, startGps, startRecording, flushBuffer, ensureRecorded])
 
   useEffect(() => {
     if (!uid || startedRef.current) return
@@ -274,18 +309,19 @@ function EmergencyScreen() {
     return () => clearTimeout(t)
   }, [countdown])
 
+  // While anything is unsynced (record missing or points buffered), keep retrying in the background.
+  useEffect(() => {
+    if (!sosId) return
+    const timer = setInterval(() => {
+      if (!recordedRef.current || bufferRef.current.length > 0) void flushBuffer().then(() => ensureRecorded())
+    }, 10000)
+    return () => clearInterval(timer)
+  }, [sosId, flushBuffer, ensureRecorded])
+
   // ---- actions ----------------------------------------------------------------------------
   const retryRecord = async () => {
-    if (!sosId) return
     setRecordError(null)
-    try {
-      await apiJson('/api/sos', { method: 'POST', json: { id: sosId, is_test: isDrill } })
-      setRecordState('recorded')
-      void flushBuffer()
-    } catch (error) {
-      setRecordState('failed')
-      setRecordError(errorMessage(error))
-    }
+    if (await ensureRecorded()) void flushBuffer()
   }
 
   const logAction = (kind: 'call_contact' | 'sms_contact' | 'call_emergency', contactId?: string) => {
@@ -298,6 +334,7 @@ function EmergencyScreen() {
     setEnding(true)
     setEndError(null)
     try {
+      if (!(await ensureRecorded())) throw new Error('The server is unreachable, so this SOS could not be saved.')
       await apiJson('/api/sos', { method: 'PUT', json: { id: sosId, status } })
     } catch (error) {
       // Do not pretend it ended: the server may still list this SOS as active.

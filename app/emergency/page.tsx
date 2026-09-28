@@ -79,6 +79,7 @@ function EmergencyScreen() {
 
   const stopWatchRef = useRef<(() => void) | null>(null)
   const startedRef = useRef(false)
+  const disposedRef = useRef(false)
   const lastSavedRef = useRef<{ at: number; lat: number; lng: number } | null>(null)
   const bufferRef = useRef<{ lat: number; lng: number; accuracy: number; at: string }[]>([])
   const sosIdRef = useRef<string | null>(null)
@@ -177,16 +178,22 @@ function EmergencyScreen() {
 
     let permission = await getLocationPermission()
     if (permission !== 'granted') permission = await requestLocationPermission()
+    if (disposedRef.current) return
     if (permission === 'denied') {
       setGpsStatus(LOCATION_ERROR_TEXT.denied)
       setGpsError({ code: 'denied', message: LOCATION_ERROR_TEXT.denied, name: 'LocationError' })
       return
     }
     setGpsStatus('Acquiring GPS…')
-    stopWatchRef.current = await watchFixes(handleFix, (error) => {
+    const stop = await watchFixes(handleFix, (error) => {
       setGpsError(error)
       setGpsStatus(LOCATION_ERROR_TEXT[error.code])
     })
+    if (disposedRef.current) {
+      stop() // the screen was left while the watcher was being registered
+      return
+    }
+    stopWatchRef.current = stop
   }, [handleFix])
 
   // ---- audio ------------------------------------------------------------------------------
@@ -303,13 +310,15 @@ function EmergencyScreen() {
     void begin()
   }, [uid, begin])
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    disposedRef.current = false
+    return () => {
+      disposedRef.current = true
       stopWatchRef.current?.()
+      stopWatchRef.current = null
       stopRecording()
-    },
-    [stopRecording],
-  )
+    }
+  }, [stopRecording])
 
   useEffect(() => {
     if (countdown <= 0) return

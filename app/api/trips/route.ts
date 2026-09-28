@@ -31,6 +31,16 @@ export async function POST(request: Request) {
     if (existing) {
       return existing.firebase_uid === uid ? NextResponse.json(existing) : apiError(409, 'Trip id already in use.')
     }
+    // A killed app can leave a session "Active" forever; close this user's sessions idle for 10+ minutes.
+    const cutoff = new Date(Date.now() - 10 * 60_000).toISOString()
+    db.prepare(
+      `UPDATE trips
+       SET status = 'Ended',
+           ended_at = COALESCE((SELECT MAX(recorded_at) FROM location_points p WHERE p.trip_id = trips.id), started_at)
+       WHERE firebase_uid = ? AND status = 'Active'
+         AND COALESCE((SELECT MAX(recorded_at) FROM location_points p WHERE p.trip_id = trips.id), started_at) < ?`
+    ).run(uid, cutoff)
+
     db.prepare(`INSERT INTO trips (id, firebase_uid, started_at, status) VALUES (?, ?, ?, 'Active')`).run(
       id,
       uid,

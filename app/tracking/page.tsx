@@ -45,7 +45,8 @@ export default function TrackingPage() {
   const tripIdRef = useRef<string | null>(null)
   const stopWatchRef = useRef<(() => void) | null>(null)
   const lastSavedRef = useRef<{ at: number; lat: number; lng: number } | null>(null)
-  const startedRef = useRef(false)
+  const tripStartedRef = useRef(false)
+  const disposedRef = useRef(false) // true once the screen has unmounted: late async results must clean up after themselves
 
   const onFix = useCallback((next: Fix) => {
     setFix(next)
@@ -80,6 +81,7 @@ export default function TrackingPage() {
 
     let permission = await getLocationPermission()
     if (permission !== 'granted') permission = await requestLocationPermission()
+    if (disposedRef.current) return
     if (permission === 'denied' || permission === 'unsupported') {
       const error = { code: permission === 'denied' ? 'denied' : 'unsupported', message: '', name: 'LocationError' } as LocationError
       setGpsError(error)
@@ -87,33 +89,51 @@ export default function TrackingPage() {
       return
     }
     setStatus('Acquiring GPS…')
-    stopWatchRef.current = await watchFixes(onFix, (error) => {
+    const stop = await watchFixes(onFix, (error) => {
       setGpsError(error)
       setStatus(LOCATION_ERROR_TEXT[error.code])
     })
+    if (disposedRef.current) {
+      stop() // the screen was left while the watcher was being registered
+      return
+    }
+    stopWatchRef.current = stop
   }, [onFix])
 
   useEffect(() => {
-    if (!user || startedRef.current) return
-    startedRef.current = true
+    if (!user) return
+    disposedRef.current = false
 
-    const tripId = generateUUID()
-    apiJson('/api/trips', { method: 'POST', json: { id: tripId } })
-      .then(() => {
-        tripIdRef.current = tripId
-      })
-      .catch((error) => {
-        setUploadError(`Tracking session was not saved: ${errorMessage(error)}`)
-      })
-    apiJson<Contact[]>('/api/contacts')
-      .then((c) => setContactCount(c.length))
-      .catch(() => setContactCount(null))
+    if (!tripStartedRef.current) {
+      tripStartedRef.current = true
+      const tripId = generateUUID()
+      apiJson('/api/trips', { method: 'POST', json: { id: tripId } })
+        .then(() => {
+          if (disposedRef.current) {
+            // Left the screen before the session was created: close it right away.
+            apiJson('/api/trips', { method: 'PUT', json: { id: tripId } }).catch(() => {})
+          } else {
+            tripIdRef.current = tripId
+          }
+        })
+        .catch((error) => {
+          setUploadError(`Tracking session was not saved: ${errorMessage(error)}`)
+        })
+      apiJson<Contact[]>('/api/contacts')
+        .then((c) => setContactCount(c.length))
+        .catch(() => setContactCount(null))
+    }
     void startGps()
 
     return () => {
+      disposedRef.current = true
       stopWatchRef.current?.()
+      stopWatchRef.current = null
       const id = tripIdRef.current
+      tripIdRef.current = null
       if (id) apiJson('/api/trips', { method: 'PUT', json: { id } }).catch(() => {})
+      // React Strict Mode (dev) remounts immediately; a fresh session is created for the remount.
+      tripStartedRef.current = false
     }
   }, [user, startGps])
 

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { auth } from '@/lib/firebase/client'
 import { ensureProfile, isProfileWriteInFlight, logOut } from '@/lib/auth-actions'
+import { CONFIG } from '@/lib/config'
 
 interface AuthContextType {
   user: User | null
@@ -40,6 +41,7 @@ const matches = (pathname: string, routes: string[]) =>
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [slow, setSlow] = useState(false)
   const router = useRouter()
   const pathname = usePathname() ?? '/'
 
@@ -54,6 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
   }, [])
+
+  // If restoring the session stalls (bad network), say so and keep the emergency call reachable.
+  useEffect(() => {
+    if (!loading) return
+    const timer = setTimeout(() => setSlow(true), 5000)
+    return () => clearTimeout(timer)
+  }, [loading])
 
   // Self-heal: a Firebase account with no SQLite profile (e.g. the server was down at signup) gets one.
   const uid = user?.uid
@@ -85,6 +94,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <p className="text-sm font-medium text-muted-foreground">Restoring your session…</p>
+          {slow && (
+            <div className="mt-2 max-w-xs space-y-3 px-6 text-center" role="alert">
+              <p className="text-sm text-muted-foreground">
+                This is taking longer than usual. Your connection may be weak or offline.
+              </p>
+              <a
+                href={`tel:${CONFIG.emergencyNumber}`}
+                className="flex min-h-12 items-center justify-center rounded-2xl bg-destructive px-5 font-semibold text-white"
+              >
+                Call {CONFIG.emergencyNumber} now
+              </a>
+            </div>
+          )}
         </div>
       </div>
     )

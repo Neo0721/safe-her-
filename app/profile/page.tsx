@@ -30,9 +30,10 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 import { apiJson, errorMessage } from "@/lib/api-fetch"
 import type { Profile } from "@/lib/auth-actions"
+import { initialsOf } from "@/lib/utils"
 
 export default function ProfilePage() {
-    const { logout, user } = useAuth()
+  const { logout, user } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -101,9 +102,7 @@ export default function ProfilePage() {
     )
   }
 
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
-    : "U"
+  const initials = profile?.full_name ? initialsOf(profile.full_name) : "U"
 
   if (loadError || !profile) {
     return (

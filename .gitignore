@@ -29,6 +29,6 @@ android/.idea
 out
 *.tsbuildinfo
 
-capacitor-www/server-url.js
+capacitor-www/error.html
 expo-app/
 expo-app/

@@ -30,13 +30,21 @@ if (rawUrl) {
   );
 }
 
-// The offline/error page (which cannot read plugins or env) needs to know where to retry.
+// The offline/error page cannot read plugins or env vars (and, on Android, a linked <script>/<link>
+// silently fails to load on this fallback page — only the inline document itself is served
+// reliably), so it is generated here from a template with everything inlined.
 try {
-  fs.writeFileSync(
-    path.join(process.cwd(), 'capacitor-www', 'server-url.js'),
-    `window.SAFEHER_SERVER_URL = ${JSON.stringify(serverUrl ?? '')};\n` +
-      `window.SAFEHER_EMERGENCY_NUMBER = ${JSON.stringify(process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || '112')};\n`
-  );
+  const rawNumber = process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || '112';
+  // Keep only characters valid in a tel: number; this also HTML-escapes it since none of these are special.
+  const emergencyNumber = /^[\d+\-() ]{1,20}$/.test(rawNumber) ? rawNumber : '112';
+
+  const dir = path.join(process.cwd(), 'capacitor-www');
+  const template = fs.readFileSync(path.join(dir, 'error.template.html'), 'utf8');
+  const html = template
+    .replaceAll('__EMERGENCY_NUMBER__', emergencyNumber)
+    .replaceAll('__TARGET_TEXT__', serverUrl ? `Server: ${serverUrl}` : '')
+    .replaceAll('__SERVER_URL_JSON__', JSON.stringify(serverUrl ?? ''))
+  fs.writeFileSync(path.join(dir, 'error.html'), html)
 } catch {
   /* capacitor-www is optional at config-load time */
 }

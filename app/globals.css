@@ -30,89 +30,99 @@
   --color-emergency-foreground: var(--emergency-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 16px);
+  --radius-3xl: calc(var(--radius) + 14px);
+  --radius-4xl: calc(var(--radius) + 22px);
 }
 
+/* ------------------------------------------------------------------ */
+/* Design tokens: "Aurora" — deep indigo, electric violet, rose alert  */
+/* ------------------------------------------------------------------ */
 :root {
   color-scheme: light;
-  --radius: 1.25rem;
+  --radius: 1.1rem;
 
-  --background: #FAFAFC;
-  --foreground: #1F2937;
-  --card: #FFFFFF;
-  --card-foreground: #1F2937;
-  --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
+  --background: #f6f3ff;
+  --foreground: #19123a;
+  --card: #ffffff;
+  --card-foreground: #19123a;
+  --popover: #ffffff;
+  --popover-foreground: #19123a;
 
-  --primary: #7C3AED;
-  --primary-foreground: #FFFFFF;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #ede8fd;
+  --secondary-foreground: #4c1d95;
+  --muted: #ece8f7;
+  --muted-foreground: #645d82;
+  --accent: #ec4899;
+  --accent-foreground: #ffffff;
 
-  --secondary: #A78BFA;
-  --secondary-foreground: #FFFFFF;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --emergency: #e11d48;
+  --emergency-foreground: #ffffff;
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
 
-  --muted: #E5E7EB;
-  --muted-foreground: #6B7280;
+  --border: #e3dcf6;
+  --input: #ddd5f3;
+  --ring: #7c3aed;
 
-  --accent: #F472B6;
-  --accent-foreground: #FFFFFF;
+  /* Brand gradients (shared by both themes) */
+  --grad-primary: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 45%, #c026d3 100%);
+  --grad-danger: linear-gradient(145deg, #ff6b6b 0%, #f43f5e 45%, #be123c 100%);
+  --grad-success: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  --grad-warm: linear-gradient(135deg, #fb923c 0%, #ec4899 100%);
+  --grad-sky: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
 
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-
-  --emergency: #EF4444;
-  --emergency-foreground: #FFFFFF;
-
-  --success: #22C55E;
-  --success-foreground: #FFFFFF;
-
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #7C3AED;
+  --shadow-card: 0 1px 2px rgb(25 18 58 / 0.04), 0 8px 24px -12px rgb(76 29 149 / 0.18);
+  --shadow-glow: 0 14px 40px -12px rgb(124 58 237 / 0.55);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0F172A;
-  --foreground: #F8FAFC;
-  --card: #1E293B;
-  --card-foreground: #F8FAFC;
-  --popover: #1E293B;
-  --popover-foreground: #F8FAFC;
+  --background: #09061f;
+  --foreground: #f4f1ff;
+  --card: #141032;
+  --card-foreground: #f4f1ff;
+  --popover: #141032;
+  --popover-foreground: #f4f1ff;
 
-  --primary: #A78BFA;
-  --primary-foreground: #0F172A;
+  --primary: #a78bfa;
+  --primary-foreground: #12082e;
+  --secondary: #231a4d;
+  --secondary-foreground: #ddd6fe;
+  --muted: #1d1644;
+  --muted-foreground: #a59fc8;
+  --accent: #f472b6;
+  --accent-foreground: #1a0a24;
 
-  --secondary: #7C3AED;
-  --secondary-foreground: #F8FAFC;
+  --destructive: #f43f5e;
+  --destructive-foreground: #ffffff;
+  --emergency: #f43f5e;
+  --emergency-foreground: #ffffff;
+  --success: #34d399;
+  --success-foreground: #04261b;
+  --warning: #fbbf24;
 
-  --muted: #334155;
-  --muted-foreground: #94A3B8;
+  --border: #2a2259;
+  --input: #2a2259;
+  --ring: #a78bfa;
 
-  --accent: #F472B6;
-  --accent-foreground: #0F172A;
-
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-
-  --emergency: #EF4444;
-  --emergency-foreground: #FFFFFF;
-
-  --success: #22C55E;
-  --success-foreground: #0F172A;
-
-  --border: #334155;
-  --input: #334155;
-  --ring: #A78BFA;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -14px rgb(0 0 0 / 0.7);
+  --shadow-glow: 0 14px 44px -12px rgb(139 92 246 / 0.5);
 }
 
 @layer base {
@@ -154,6 +164,70 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Reusable surfaces                                                    */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Page background with soft colour glows (cheap radial gradients, no blur filters). */
+  .bg-aurora {
+    background:
+      radial-gradient(70% 38% at 88% -6%, color-mix(in oklab, var(--primary) 26%, transparent), transparent 72%),
+      radial-gradient(55% 30% at -8% 14%, color-mix(in oklab, var(--accent) 17%, transparent), transparent 72%),
+      var(--background);
+  }
+  .bg-aurora-danger {
+    background:
+      radial-gradient(80% 45% at 50% -8%, rgb(244 63 94 / 0.38), transparent 70%),
+      radial-gradient(60% 35% at 100% 60%, rgb(190 18 60 / 0.2), transparent 70%),
+      #0b0510;
+  }
+
+  /* Glass-like surface for cards and sheets. */
+  .surface {
+    background: color-mix(in oklab, var(--card) 88%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+    box-shadow: var(--shadow-card);
+  }
+  .surface-raised {
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+  }
+
+  .gradient-primary {
+    background-image: var(--grad-primary);
+    color: #fff;
+  }
+  .gradient-danger {
+    background-image: var(--grad-danger);
+    color: #fff;
+  }
+  .gradient-success {
+    background-image: var(--grad-success);
+    color: #fff;
+  }
+  .gradient-warm {
+    background-image: var(--grad-warm);
+    color: #fff;
+  }
+  .gradient-sky {
+    background-image: var(--grad-sky);
+    color: #fff;
+  }
+  .text-gradient {
+    background-image: var(--grad-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glow-primary {
+    box-shadow: var(--shadow-glow);
+  }
+  .glow-danger {
+    box-shadow: 0 16px 44px -10px rgb(244 63 94 / 0.6);
+  }
+}
+
 .pt-safe {
   padding-top: var(--sat);
 }
@@ -165,15 +239,48 @@
   line-height: 1.2;
 }
 
+/* Headers are transparent over the aurora at the top and frosted once the page scrolls. */
+.status-strip {
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+html[data-scrolled] .status-strip {
+  background: var(--statusbar-bg, var(--background));
+}
+.nav-glass {
+  background: transparent;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+html[data-scrolled] .nav-glass {
+  background: color-mix(in oklab, var(--background) 82%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--border) 70%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Animations                                                           */
+/* ------------------------------------------------------------------ */
 @keyframes sos-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.5);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5);
   }
   70% {
-    box-shadow: 0 0 0 28px rgba(229, 57, 53, 0);
+    box-shadow: 0 0 0 28px rgba(244, 63, 94, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
   }
 }
 
@@ -197,14 +304,40 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .animate-sos-pulse {
   animation: sos-pulse 2s infinite;
+}
+.animate-ripple {
+  animation: ripple 2.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
 }
 .animate-float-slow {
   animation: float-slow 4s ease-in-out infinite;
 }
 .animate-emergency-flash {
   animation: emergency-flash 1.4s ease-in-out infinite;
+}
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ripple,
+  .animate-sos-pulse,
+  .animate-float-slow,
+  .animate-emergency-flash,
+  .animate-shimmer {
+    animation: none;
+  }
 }
 
 /* subtle scrollbar hiding for mobile shells */

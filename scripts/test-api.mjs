@@ -214,6 +214,54 @@ async function main() {
   const sql = await call(A.token, 'POST', '/api/contacts', { name: "x'); DROP TABLE users;--", relationship: 'r', phone: '12345' })
   check('SQL metacharacters stored as data', sql.status === 201 && (await call(A.token, 'GET', '/api/profile')).status === 200)
 
+  console.log('\n[11] Power-button trigger settings and SOS source')
+  const ps0 = await call(B.token, 'GET', '/api/settings')
+  check('power trigger is off by default, 5 presses', ps0.json?.power_trigger === 0 && ps0.json?.power_presses === 5)
+  const ps1 = await call(A.token, 'PUT', '/api/settings', { power_trigger: true, power_presses: 4 })
+  check('power trigger saved (on, 4 presses)', ps1.json?.power_trigger === 1 && ps1.json?.power_presses === 4)
+  check('hold duration untouched by partial update', ps1.json?.hold_duration === 3)
+  check('invalid press count rejected', (await call(A.token, 'PUT', '/api/settings', { power_presses: 9 })).status === 400)
+  check('non-boolean trigger flag rejected', (await call(A.token, 'PUT', '/api/settings', { power_trigger: 'yes' })).status === 400)
+  check('power settings are per user', (await call(B.token, 'GET', '/api/settings')).json?.power_trigger === 0)
+  const pwrId = `sos-${stamp}-power`
+  const pwr = await call(A.token, 'POST', '/api/sos', { id: pwrId, source: 'power' })
+  check('SOS records the power-button source', pwr.status === 201 && pwr.json?.trigger_source === 'power')
+  check('default SOS source is "hold"', (await call(A.token, 'GET', `/api/sos?id=${sosId}`)).json?.trigger_source === 'hold')
+  check('unknown SOS source rejected', (await call(A.token, 'POST', '/api/sos', { id: `sos-${stamp}-bad`, source: 'telepathy' })).status === 400)
+  await call(A.token, 'PUT', '/api/sos', { id: pwrId, status: 'Completed' })
+  check('history exposes the source', (await call(A.token, 'GET', '/api/history')).json?.find((e) => e.id === pwrId)?.trigger_source === 'power')
+
+  console.log('\n[12] Pagination, limits and operational endpoints')
+  const page1 = await call(A.token, 'GET', '/api/history?limit=2')
+  check('history honours limit', page1.json?.length === 2)
+  const cursor = page1.json?.[1]?.started_at
+  const page2 = await call(A.token, 'GET', `/api/history?limit=50&before=${encodeURIComponent(cursor)}`)
+  check('history cursor returns only older events', page2.status === 200 && page2.json?.every((e) => e.started_at < cursor) && page2.json.length >= 1)
+  check('history rejects a bad cursor', (await call(A.token, 'GET', '/api/history?before=notadate')).status === 400)
+  const big = await fetch(BASE + '/api/contacts', { method: 'POST', headers: { Authorization: `Bearer ${A.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'x'.repeat(40_000), relationship: 'r', phone: '12345' }) })
+  check('oversized body rejected (400, not stored)', big.status === 400)
+  const health = await fetch(BASE + '/api/health')
+  const healthJson = await health.json()
+  check('/api/health is public and reports ok', health.status === 200 && healthJson.status === 'ok' && healthJson.database === 'ok', JSON.stringify(healthJson))
+  check('health exposes no user data', !JSON.stringify(healthJson).includes('@'))
+  check('security headers present', health.headers.get('x-content-type-options') === 'nosniff' && health.headers.get('cache-control') === 'no-store')
+  check('X-Powered-By is hidden', !health.headers.get('x-powered-by'))
+
+  if (process.env.TEST_RATE_LIMIT === '1') {
+    console.log('\n[13] Rate limiting (opt-in: blocks this client for up to a minute afterwards)')
+    let limited = 0
+    let retryAfter = null
+    for (let i = 0; i < 700 && !limited; i++) {
+      const r = await fetch(BASE + '/api/profile')
+      if (r.status === 429) {
+        limited = i
+        retryAfter = r.headers.get('retry-after')
+      }
+    }
+    check('flooding is answered with 429 + Retry-After', limited > 0 && Number(retryAfter) >= 1, `(after ${limited}, retry-after ${retryAfter})`)
+    check('health probe is never rate limited', (await fetch(BASE + '/api/health')).status === 200)
+  }
+
   console.log(`\n${passed} passed, ${failed} failed`)
   if (failed) {
     console.log('Failures:\n - ' + failures.join('\n - '))

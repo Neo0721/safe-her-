@@ -50,7 +50,7 @@ function Dialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => onOpenChange(false)}
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
             aria-hidden="true"
           />
           <motion.div
@@ -63,15 +63,16 @@ function Dialog({
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
             className={cn(
               // Scrolls internally so long forms stay reachable when the keyboard shrinks the viewport.
-              'relative z-10 max-h-[calc(100dvh-var(--sat)-1rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card p-6 pb-[calc(1.5rem+var(--sab))] shadow-xl sm:rounded-3xl',
+              'relative z-10 max-h-[calc(100dvh-var(--sat)-1rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[2rem] border border-border bg-card p-6 pb-[calc(1.5rem+var(--sab))] shadow-2xl sm:rounded-[2rem]',
               className,
             )}
           >
+            <div className="mx-auto -mt-2 mb-4 h-1.5 w-12 rounded-full bg-muted-foreground/25 sm:hidden" aria-hidden="true" />
             {(title || !hideClose) && (
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                   {title && (
-                    <h2 className="font-display text-lg font-semibold">
+                    <h2 className="font-display text-xl font-bold tracking-tight">
                       {title}
                     </h2>
                   )}

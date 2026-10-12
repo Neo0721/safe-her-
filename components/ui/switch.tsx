@@ -28,16 +28,16 @@ function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors outline-none focus-visible:ring-4 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-primary' : 'bg-muted',
+        'relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors outline-none focus-visible:ring-4 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50',
+        checked ? 'gradient-primary shadow-inner' : 'bg-muted-foreground/25',
         className,
       )}
       {...props}
     >
       <span
         className={cn(
-          'pointer-events-none inline-block size-5 rounded-full bg-white shadow-sm ring-0 transition-transform',
-          checked ? 'translate-x-6' : 'translate-x-1',
+          'pointer-events-none inline-block size-6 rounded-full bg-white shadow-md ring-0 transition-transform',
+          checked ? 'translate-x-7' : 'translate-x-1',
         )}
       />
     </button>

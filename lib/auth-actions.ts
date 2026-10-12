@@ -13,6 +13,7 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { auth, googleProvider } from '@/lib/firebase/client'
 import { ApiError, apiJson } from '@/lib/api-fetch'
 import { isNativeApp } from '@/lib/platform'
+import { powerTrigger } from '@/lib/native/sos-trigger'
 
 export interface Profile {
   id: number
@@ -96,6 +97,8 @@ export async function sendResetEmail(email: string) {
 }
 
 export async function logOut() {
+  // A signed-out phone must not keep a background SOS listener running for the previous user.
+  await powerTrigger.stop()
   if (isNativeApp()) {
     try {
       await FirebaseAuthentication.signOut()

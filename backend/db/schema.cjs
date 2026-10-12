@@ -122,6 +122,9 @@ const INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_trips_uid ON trips(firebase_uid);
   CREATE INDEX IF NOT EXISTS idx_activity_uid ON activity_logs(firebase_uid);
   CREATE INDEX IF NOT EXISTS idx_actions_sos ON sos_actions(sos_event_id);
+  CREATE INDEX IF NOT EXISTS idx_sos_started ON sos_events(firebase_uid, started_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_logs(firebase_uid, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(firebase_uid, status);
 `
 
 function hasColumn(db, table, column) {
@@ -136,6 +139,18 @@ function migrate(db) {
   // so drills are stored as a normal event with is_test = 1.
   if (!hasColumn(db, 'sos_events', 'is_test')) {
     db.exec('ALTER TABLE sos_events ADD COLUMN is_test INTEGER NOT NULL DEFAULT 0')
+  }
+
+  // Power-button quick trigger: opt-in, N rapid presses within a short window.
+  if (!hasColumn(db, 'sos_settings', 'power_trigger')) {
+    db.exec('ALTER TABLE sos_settings ADD COLUMN power_trigger INTEGER NOT NULL DEFAULT 0')
+  }
+  if (!hasColumn(db, 'sos_settings', 'power_presses')) {
+    db.exec('ALTER TABLE sos_settings ADD COLUMN power_presses INTEGER NOT NULL DEFAULT 5')
+  }
+  // How an SOS was started: 'hold' (on-screen button) or 'power' (power-button trigger).
+  if (!hasColumn(db, 'sos_events', 'trigger_source')) {
+    db.exec("ALTER TABLE sos_events ADD COLUMN trigger_source TEXT NOT NULL DEFAULT 'hold'")
   }
 
   db.exec(INDEXES)

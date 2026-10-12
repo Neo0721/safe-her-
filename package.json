@@ -10,7 +10,8 @@
     "db:init": "node scripts/db-init.js",
     "db:inspect": "node scripts/db-inspect.js",
     "test:api": "node scripts/test-api.mjs",
-    "cap:sync": "cap sync android"
+    "cap:sync": "cap sync android",
+    "db:backup": "node scripts/db-backup.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

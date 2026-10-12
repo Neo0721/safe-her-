@@ -58,12 +58,12 @@ export default function PermissionsPage() {
   const locationGranted = location === 'granted'
 
   return (
-    <AppShell title="Permissions" showBack hideBottomNav>
+    <AppShell title="Permissions" subtitle="Only what SafeHer really uses" showBack hideBottomNav>
       <div className="mx-auto w-full max-w-2xl space-y-5 py-2">
         <FadeIn>
-          <div className="rounded-2xl bg-secondary/60 p-5">
-            <h2 className="font-display text-lg font-bold text-balance">Allow what SafeHer needs</h2>
-            <p className="mt-1 text-sm text-muted-foreground text-pretty">
+          <div className="gradient-primary glow-primary rounded-[2rem] p-5">
+            <h2 className="font-display text-xl font-extrabold text-balance">Allow what SafeHer needs</h2>
+            <p className="mt-1 text-sm text-white/85 text-pretty">
               Your phone will ask for each permission. SafeHer only asks for what it actually uses.
             </p>
           </div>
@@ -88,7 +88,7 @@ export default function PermissionsPage() {
           deniedHint="Blocked. Allow the microphone for SafeHer in your phone settings."
         />
 
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+        <div className="surface flex items-start gap-3 rounded-3xl p-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary">
             <PhoneCall className="size-6" />
           </span>
@@ -105,7 +105,7 @@ export default function PermissionsPage() {
           <button
             type="button"
             onClick={() => router.replace('/home')}
-            className="min-h-14 w-full rounded-2xl bg-primary py-4 font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
+            className="surface-raised min-h-14 w-full rounded-2xl py-4 font-display font-bold transition-all active:scale-[0.98]"
           >
             {locationGranted ? 'Continue to SafeHer' : 'Continue without location'}
           </button>
@@ -138,12 +138,12 @@ function PermissionCard({
   deniedHint: string
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <div className="surface rounded-3xl p-4">
       <div className="flex items-center gap-4">
         <span
           className={cn(
             'flex size-12 shrink-0 items-center justify-center rounded-2xl transition-colors',
-            state === 'granted' ? 'bg-success/15 text-success' : 'bg-secondary text-primary',
+            state === 'granted' ? 'gradient-success' : 'gradient-primary',
           )}
         >
           <Icon className="size-6" />
@@ -174,7 +174,7 @@ function PermissionCard({
             <button
               type="button"
               onClick={onAllow}
-              className="min-h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground active:scale-[0.98]"
+              className="gradient-primary min-h-12 w-full rounded-2xl text-sm font-bold active:scale-[0.98]"
             >
               {state === 'denied' ? 'Try again' : 'Allow'}
             </button>

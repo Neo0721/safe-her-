@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, ShieldAlert } from 'lucide-react'
+import { Plus, ShieldAlert, Users } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { AppShell } from '@/components/app-shell'
@@ -110,21 +110,23 @@ export default function ContactsPage() {
   }
 
   return (
-    <AppShell title="Emergency Contacts" showBack>
-      <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/8 p-3.5">
-        <ShieldAlert className="size-5 shrink-0 text-primary" />
-        <p className="text-sm text-muted-foreground">
-          During an SOS, these contacts appear as one-tap call and SMS shortcuts. SafeHer opens your dialer or SMS app; you press call or send.
+    <AppShell title="My circle" subtitle="Trusted people, one tap away" showBack>
+      <div className="surface flex items-start gap-3 rounded-3xl p-4">
+        <span className="gradient-primary flex size-10 shrink-0 items-center justify-center rounded-2xl">
+          <ShieldAlert className="size-5" />
+        </span>
+        <p className="text-sm leading-snug text-muted-foreground">
+          During an SOS these people appear as one-tap call and SMS shortcuts. SafeHer opens your dialer or SMS app; you press call or send.
         </p>
       </div>
 
       <button
         type="button"
         onClick={openAdd}
-        className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-[0.98]"
+        className="gradient-primary glow-primary mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 font-display text-base font-bold transition-transform active:scale-[0.98]"
       >
         <Plus className="size-5" />
-        Add contact
+        Add to my circle
       </button>
 
       {loading ? (
@@ -152,8 +154,12 @@ export default function ContactsPage() {
           ))}
         </Stagger>
       ) : (
-        <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground">No emergency contacts added yet.</p>
+        <div className="surface mt-6 flex flex-col items-center rounded-3xl px-6 py-10 text-center">
+          <span className="gradient-primary mb-4 flex size-16 items-center justify-center rounded-3xl">
+            <Users className="size-8" />
+          </span>
+          <p className="font-display text-lg font-bold">Your circle is empty</p>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">Add at least one trusted person so they are one tap away when you need help.</p>
         </div>
       )}
 
@@ -218,10 +224,10 @@ export default function ContactsPage() {
                   type="button"
                   onClick={() => setForm({ ...form, priority: p })}
                   className={cn(
-                    'min-h-11 rounded-xl border py-2.5 text-sm font-medium transition-colors',
+                    'min-h-12 rounded-2xl border-2 py-2.5 text-sm font-bold transition-all',
                     form.priority === p
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground hover:bg-muted'
+                      ? 'gradient-primary border-transparent shadow-md'
+                      : 'border-input text-muted-foreground hover:bg-muted'
                   )}
                 >
                   {p}
@@ -234,7 +240,7 @@ export default function ContactsPage() {
               type="button"
               variant="outline"
               size="lg"
-              className="h-12 flex-1 rounded-xl"
+              className="h-13 flex-1 rounded-2xl"
               onClick={() => setFormOpen(false)}
             >
               Cancel
@@ -243,7 +249,7 @@ export default function ContactsPage() {
               type="submit"
               size="lg"
               disabled={saving}
-              className="h-12 flex-1 rounded-xl"
+              className="h-13 flex-1 rounded-2xl"
             >
               {saving ? 'Saving…' : editing ? 'Save' : 'Add Contact'}
             </Button>
@@ -266,7 +272,7 @@ export default function ContactsPage() {
           <Button
             variant="outline"
             size="lg"
-            className="h-12 flex-1 rounded-xl"
+            className="h-13 flex-1 rounded-2xl"
             onClick={() => setDeleteTarget(null)}
           >
             Cancel
@@ -274,7 +280,7 @@ export default function ContactsPage() {
           <Button
             variant="destructive"
             size="lg"
-            className="h-12 flex-1 rounded-xl"
+            className="h-13 flex-1 rounded-2xl"
             onClick={confirmDelete}
           >
             Delete

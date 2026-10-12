@@ -25,6 +25,24 @@
 
         </activity>
 
+        <!-- Listens for rapid power-button presses (screen on/off toggles) when the user enables the quick trigger. -->
+        <service
+            android:name=".PowerTriggerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Emergency SOS trigger: counts rapid power-button presses chosen by the user" />
+        </service>
+
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -48,6 +66,17 @@
     <!-- Optional audio recording during an SOS (only if enabled in SOS settings). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Power-button quick trigger: foreground service, alert notification, haptics, restart after reboot. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Optional, user-granted: lets the trigger open the emergency screen immediately instead of via a notification. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Calls and SMS use the system dialer / SMS app via tel: and sms: links, so no phone or SMS permission is requested. -->
     <queries>

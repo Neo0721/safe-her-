@@ -177,16 +177,23 @@ export default function TrackingPage() {
         />
       </div>
 
+      {/* Soft scrim so map labels never run under the status-bar clock and icons. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-[999] bg-gradient-to-b from-background/90 to-transparent"
+        style={{ height: 'calc(var(--sat) + 1.25rem)' }}
+        aria-hidden="true"
+      />
+
       <header className="pt-safe relative z-[1000] flex items-center justify-between gap-2 p-4">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="Go back"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-lg ring-1 ring-border"
+          className="surface-raised flex size-11 shrink-0 items-center justify-center rounded-2xl shadow-lg transition-transform active:scale-90"
         >
           <ArrowLeft className="size-5" />
         </button>
-        <span className="flex min-w-0 items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-semibold shadow-lg ring-1 ring-border">
+        <span className="surface-raised flex min-w-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-lg">
           <span className="relative flex size-2.5 shrink-0">
             {fix && <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />}
             <span className={`relative inline-flex size-2.5 rounded-full ${fix ? 'bg-success' : gpsError ? 'bg-danger' : 'bg-amber-500'}`} />
@@ -203,10 +210,10 @@ export default function TrackingPage() {
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-        className="relative z-[1000] max-h-[62dvh] overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 pb-[calc(1.25rem+var(--sab))] shadow-2xl"
+        className="relative z-[1000] max-h-[62dvh] overflow-y-auto rounded-t-[2rem] border-t border-border bg-card p-5 pb-[calc(1.25rem+var(--sab))] shadow-[0_-12px_40px_-12px_rgb(0_0_0/0.35)]"
       >
         <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
-        <h1 className="font-display text-lg font-bold">Live Location</h1>
+        <h1 className="font-display text-xl font-extrabold tracking-tight">Live location</h1>
         <p className="text-sm text-muted-foreground">
           {fix ? 'Your real GPS position is being recorded to your SafeHer history.' : 'Waiting for a real GPS fix…'}
         </p>
@@ -264,14 +271,14 @@ export default function TrackingPage() {
             type="button"
             onClick={() => void stopSharing()}
             disabled={stopping}
-            className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-border text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-50"
+            className="surface-raised flex min-h-14 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition-transform active:scale-95 disabled:opacity-50"
           >
             <Square className="size-5 text-muted-foreground" />
             Stop tracking
           </button>
           <a
             href={`tel:${CONFIG.emergencyNumber}`}
-            className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-destructive text-sm font-semibold text-primary-foreground shadow-md shadow-destructive/25 active:scale-95"
+            className="gradient-danger glow-danger flex min-h-14 items-center justify-center gap-2 rounded-2xl text-sm font-bold active:scale-95"
           >
             <PhoneCall className="size-5" />
             Call {CONFIG.emergencyNumber}
@@ -295,9 +302,9 @@ function Tile({
 }) {
   return (
     <div className={`min-w-0 rounded-2xl bg-muted/60 p-3 ${wide ? 'col-span-2' : ''}`}>
-      <div className="flex items-center gap-2 text-muted-foreground">
+      <div className="flex items-center gap-2 text-primary">
         <Icon className="size-4 shrink-0" />
-        <span className="text-xs font-medium">{label}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
       </div>
       <p className="mt-1 break-words text-sm font-semibold">{value}</p>
     </div>

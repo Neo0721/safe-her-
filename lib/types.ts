@@ -14,6 +14,8 @@ export interface SosSettings {
   location_sharing: number
   audio_recording: number
   notify_contacts: number
+  power_trigger: number
+  power_presses: number
 }
 
 export interface SosEvent {
@@ -25,6 +27,7 @@ export interface SosEvent {
   accuracy: number | null
   status: 'Active' | 'Completed' | 'Cancelled' | 'Failed' | string
   is_test: number
+  trigger_source?: 'hold' | 'power' | string
   points_count?: number
   actions_count?: number
 }

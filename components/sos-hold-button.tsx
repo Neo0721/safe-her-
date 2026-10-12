@@ -3,7 +3,7 @@
 import { Siren } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useHold } from '@/lib/hooks/use-hold'
 import { getHoldSeconds } from '@/lib/sos-prefs'
 import { cn } from '@/lib/utils'
@@ -11,43 +11,56 @@ import { cn } from '@/lib/utils'
 /** The main SOS control: hold for the configured duration to start an emergency. */
 export function SosHoldButton() {
   const router = useRouter()
+  const gradientId = useId()
   const [seconds, setSeconds] = useState(3)
 
   useEffect(() => setSeconds(getHoldSeconds()), [])
 
   const { progress, holding, handlers } = useHold(seconds * 1000, () => router.push('/emergency?start=1'))
 
-  const radius = 140
+  const radius = 144
   const circumference = 2 * Math.PI * radius
+  const pct = Math.round(progress * 100)
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div className="flex w-full flex-col items-center gap-5">
       {/* Scales with the screen: never wider than the viewport, never taller than ~half of it. */}
-      <div className="relative aspect-square w-[min(20rem,100%,52dvh)]">
+      <div className="relative aspect-square w-[min(21rem,100%,50dvh)]">
+        {/* Ambient glow */}
+        <div
+          className="absolute inset-[6%] rounded-full opacity-70 blur-2xl"
+          style={{ background: 'radial-gradient(closest-side, rgb(244 63 94 / 0.55), transparent)' }}
+          aria-hidden="true"
+        />
+
+        {/* Expanding ripples while idle */}
         {!holding && (
           <>
-            <motion.span
-              className="absolute inset-0 rounded-full border-2 border-danger/20"
-              animate={{ scale: [1, 1.06], opacity: [0.5, 0] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-            />
-            <motion.span
-              className="absolute inset-[6%] rounded-full border border-danger/30"
-              animate={{ scale: [1, 1.1], opacity: [0.3, 0] }}
-              transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
+            <span className="animate-ripple absolute inset-[12%] rounded-full border-2 border-danger/50" aria-hidden="true" />
+            <span
+              className="animate-ripple absolute inset-[12%] rounded-full border border-danger/40"
+              style={{ animationDelay: '1.4s' }}
+              aria-hidden="true"
             />
           </>
         )}
 
+        {/* Progress ring */}
         <svg className="absolute inset-0 size-full -rotate-90" viewBox="0 0 320 320" aria-hidden="true">
-          <circle cx="160" cy="160" r={radius} fill="none" className="stroke-danger/15" strokeWidth="6" />
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#fb7185" />
+              <stop offset="100%" stopColor="#e11d48" />
+            </linearGradient>
+          </defs>
+          <circle cx="160" cy="160" r={radius} fill="none" className="stroke-danger/15" strokeWidth="8" />
           <circle
             cx="160"
             cy="160"
             r={radius}
             fill="none"
-            className="stroke-danger"
-            strokeWidth="6"
+            stroke={`url(#${gradientId})`}
+            strokeWidth="9"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - progress)}
@@ -58,27 +71,32 @@ export function SosHoldButton() {
           type="button"
           aria-label={`Hold for ${seconds} seconds to activate emergency SOS`}
           {...handlers}
-          animate={
-            holding
-              ? { scale: [1, 1.04, 1], boxShadow: '0 0 60px rgba(239, 68, 68, 0.6)' }
-              : { scale: 1, boxShadow: '0 0 40px rgba(239, 68, 68, 0.3)' }
-          }
-          transition={holding ? { duration: 1, repeat: Number.POSITIVE_INFINITY } : { duration: 0.2 }}
-          className="absolute inset-[13%] flex touch-none select-none flex-col items-center justify-center gap-2 rounded-full bg-danger text-white shadow-xl [-webkit-touch-callout:none]"
+          animate={holding ? { scale: [1, 1.035, 1] } : { scale: 1 }}
+          transition={holding ? { duration: 0.9, repeat: Number.POSITIVE_INFINITY } : { duration: 0.2 }}
+          className="gradient-danger glow-danger absolute inset-[11%] flex touch-none select-none flex-col items-center justify-center gap-1 rounded-full text-white ring-4 ring-white/15 [-webkit-touch-callout:none]"
         >
-          <Siren className="size-1/4" strokeWidth={1.5} />
-          <span className="font-display text-3xl font-bold tracking-wider">SOS</span>
+          {/* Glossy highlight */}
+          <span
+            className="pointer-events-none absolute inset-x-[16%] top-[7%] h-[34%] rounded-full opacity-30"
+            style={{ background: 'linear-gradient(to bottom, rgb(255 255 255 / 0.9), transparent)' }}
+            aria-hidden="true"
+          />
+          <Siren className="relative size-[26%]" strokeWidth={1.8} />
+          <span className="relative font-display text-4xl font-extrabold tracking-[0.18em]">SOS</span>
+          <span className="relative text-[11px] font-semibold uppercase tracking-widest text-white/80">
+            {holding ? `${pct}%` : `Hold ${seconds}s`}
+          </span>
         </motion.button>
       </div>
 
       <p
         className={cn(
-          'text-center text-sm font-medium transition-colors duration-300',
-          holding ? 'font-semibold text-danger' : 'text-muted-foreground',
+          'rounded-full px-4 py-1.5 text-center text-sm font-semibold transition-colors duration-300',
+          holding ? 'bg-danger/15 text-danger' : 'bg-muted/70 text-muted-foreground',
         )}
         aria-live="polite"
       >
-        {holding ? `Keep holding… ${Math.round(progress * 100)}%` : `Hold for ${seconds} seconds`}
+        {holding ? 'Keep holding… release to cancel' : 'Press and hold to send an SOS'}
       </p>
     </div>
   )

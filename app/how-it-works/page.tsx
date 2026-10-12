@@ -35,7 +35,7 @@ const toneStyles = {
 
 export default function HowItWorksPage() {
   return (
-    <AppShell title="How It Works" showBack>
+    <AppShell title="How it works" subtitle="What SafeHer does and what your phone does" showBack>
       <div className="mx-auto w-full max-w-2xl py-2">
         <FadeIn>
           <p className="mb-8 text-center text-muted-foreground text-pretty">
@@ -61,11 +61,11 @@ export default function HowItWorksPage() {
                 >
                   <motion.div
                     whileHover={{ scale: 1.1 }}
-                    className={`relative z-10 flex size-14 shrink-0 items-center justify-center rounded-2xl bg-card shadow-sm ring-1 ${toneStyles[step.tone]}`}
+                    className={`relative z-10 flex size-14 shrink-0 items-center justify-center rounded-2xl bg-card shadow-md ring-1 ${toneStyles[step.tone]}`}
                   >
                     <Icon className="size-6" />
                   </motion.div>
-                  <div className="flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm">
+                  <div className="flex-1 surface rounded-3xl p-4">
                     <div className="flex items-center gap-2">
                       <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
                         {i + 1}

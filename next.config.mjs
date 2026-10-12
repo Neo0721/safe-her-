@@ -26,6 +26,25 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+
+  poweredByHeader: false,
+
+  async headers() {
+    const common = [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      // Camera is never used; location and microphone only by SafeHer itself.
+      { key: 'Permissions-Policy', value: 'geolocation=(self), microphone=(self), camera=()' },
+    ]
+    if (process.env.NODE_ENV === 'production') {
+      common.push({ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' })
+    }
+    return [
+      { source: '/:path*', headers: common },
+      // API responses can contain personal data: never cache them.
+      { source: '/api/:path*', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+    ]
+  },
 }
 
 export default nextConfig

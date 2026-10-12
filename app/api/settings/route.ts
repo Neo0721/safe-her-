@@ -6,6 +6,7 @@ import { apiError, readJson, serverError } from '@/backend/http'
 export const dynamic = 'force-dynamic'
 
 const HOLD_DURATIONS = [3, 5, 10]
+const POWER_PRESSES = [3, 4, 5, 6]
 
 interface SettingsRow {
   firebase_uid: string
@@ -13,6 +14,8 @@ interface SettingsRow {
   location_sharing: number
   audio_recording: number
   notify_contacts: number
+  power_trigger: number
+  power_presses: number
   updated_at: string
 }
 
@@ -59,8 +62,11 @@ export async function PUT(request: Request) {
     const hold = body.hold_duration === undefined ? current.hold_duration : Number(body.hold_duration)
     if (!HOLD_DURATIONS.includes(hold)) return apiError(400, 'hold_duration must be 3, 5 or 10 seconds.')
 
+    const presses = body.power_presses === undefined ? current.power_presses : Number(body.power_presses)
+    if (!POWER_PRESSES.includes(presses)) return apiError(400, 'power_presses must be 3, 4, 5 or 6.')
+
     const merged: Record<string, 0 | 1> = {}
-    for (const key of ['location_sharing', 'audio_recording', 'notify_contacts'] as const) {
+    for (const key of ['location_sharing', 'audio_recording', 'notify_contacts', 'power_trigger'] as const) {
       const flag = body[key] === undefined ? (current[key] as 0 | 1) : toFlag(body[key])
       if (flag === null) return apiError(400, `${key} must be a boolean.`)
       merged[key] = flag
@@ -69,9 +75,10 @@ export async function PUT(request: Request) {
     const now = new Date().toISOString()
     db.prepare(
       `UPDATE sos_settings
-       SET hold_duration = ?, location_sharing = ?, audio_recording = ?, notify_contacts = ?, updated_at = ?
+       SET hold_duration = ?, location_sharing = ?, audio_recording = ?, notify_contacts = ?,
+           power_trigger = ?, power_presses = ?, updated_at = ?
        WHERE firebase_uid = ?`
-    ).run(hold, merged.location_sharing, merged.audio_recording, merged.notify_contacts, now, uid)
+    ).run(hold, merged.location_sharing, merged.audio_recording, merged.notify_contacts, merged.power_trigger, presses, now, uid)
 
     db.prepare(
       `INSERT INTO activity_logs (id, firebase_uid, type, title, detail, created_at)

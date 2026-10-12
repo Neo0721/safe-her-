@@ -9,10 +9,17 @@ export function serverError(context: string, error: unknown) {
   return apiError(500, 'Internal server error')
 }
 
-/** Parses a JSON object body. Returns null for malformed or non-object payloads. */
+/** Largest JSON body any SafeHer endpoint accepts. Real payloads are well under 2 KB. */
+export const MAX_BODY_BYTES = 32 * 1024
+
+/** Parses a JSON object body. Returns null for malformed, oversized or non-object payloads. */
 export async function readJson(request: Request): Promise<Record<string, unknown> | null> {
   try {
-    const body = await request.json()
+    const declared = Number(request.headers.get('content-length') ?? 0)
+    if (declared > MAX_BODY_BYTES) return null
+    const text = await request.text()
+    if (text.length > MAX_BODY_BYTES) return null
+    const body = JSON.parse(text)
     return body && typeof body === 'object' && !Array.isArray(body)
       ? (body as Record<string, unknown>)
       : null

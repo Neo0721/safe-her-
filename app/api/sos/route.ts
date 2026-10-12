@@ -48,6 +48,8 @@ export async function POST(request: Request) {
   const id = body.id === undefined ? crypto.randomUUID() : body.id
   if (typeof id !== 'string' || !ID_PATTERN.test(id)) return apiError(400, 'Invalid SOS event id.')
   const isTest = body.is_test === true
+  const source = body.source === undefined ? 'hold' : body.source
+  if (source !== 'hold' && source !== 'power') return apiError(400, 'source must be "hold" or "power".')
 
   const hasFix = body.latitude !== undefined && body.latitude !== null
   if (hasFix && !validLatLng(body.latitude, body.longitude)) return apiError(400, 'Invalid coordinates.')
@@ -68,9 +70,9 @@ export async function POST(request: Request) {
     const now = new Date().toISOString()
     db.transaction(() => {
       db.prepare(
-        `INSERT INTO sos_events (id, firebase_uid, started_at, latitude, longitude, accuracy, status, contacts_notified, is_test)
-         VALUES (?, ?, ?, ?, ?, ?, 'Active', 0, ?)`
-      ).run(id, uid, now, hasFix ? body.latitude : null, hasFix ? body.longitude : null, hasFix ? accuracy : null, isTest ? 1 : 0)
+        `INSERT INTO sos_events (id, firebase_uid, started_at, latitude, longitude, accuracy, status, contacts_notified, is_test, trigger_source)
+         VALUES (?, ?, ?, ?, ?, ?, 'Active', 0, ?, ?)`
+      ).run(id, uid, now, hasFix ? body.latitude : null, hasFix ? body.longitude : null, hasFix ? accuracy : null, isTest ? 1 : 0, source)
 
       if (hasFix) {
         db.prepare(
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
            VALUES (?, ?, ?, ?, ?, ?)`
         ).run(uid, id, body.latitude, body.longitude, accuracy, now)
       }
-      log(uid, isTest ? 'SOS Drill Started' : 'SOS Started', isTest ? 'Practice drill. No contacts were contacted.' : 'SOS activated by user')
+      log(uid, isTest ? 'SOS Drill Started' : 'SOS Started', isTest ? 'Practice drill. No contacts were contacted.' : source === 'power' ? 'SOS activated with the power-button trigger' : 'SOS activated by user')
     })()
 
     return NextResponse.json(db.prepare('SELECT * FROM sos_events WHERE id = ?').get(id), { status: 201 })

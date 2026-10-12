@@ -8,7 +8,7 @@ import { safetyTips } from "@/lib/data"
 
 export default function SafetyTipsPage() {
   return (
-    <AppShell title="Safety Tips" showBack>
+    <AppShell title="Safety tips" subtitle="Small habits, big difference" showBack>
       <div className="mx-auto w-full max-w-2xl py-2">
         <FadeIn>
           <p className="mb-6 text-muted-foreground text-pretty">
@@ -25,7 +25,7 @@ export default function SafetyTipsPage() {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: i * 0.06 }}
               whileHover={{ y: -4 }}
-              className="group overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow hover:shadow-lg"
+              className="surface group overflow-hidden rounded-3xl"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-secondary/50">
                 <Image

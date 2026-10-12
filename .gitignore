@@ -32,3 +32,9 @@ out
 capacitor-www/error.html
 expo-app/
 expo-app/
+
+data/backups/
+
+android/keystore.properties
+*.jks
+*.keystore

@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Clock, FlaskConical, MapPin, PhoneCall, ShieldAlert, Timer, Route } from 'lucide-react'
+import { Calendar, Clock, FlaskConical, MapPin, PhoneCall, ShieldAlert, Timer, Route, Zap } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useCallback, useEffect, useState } from 'react'
 import { AppShell } from '@/components/app-shell'
@@ -19,6 +19,8 @@ interface RoutePoint {
   accuracy: number | null
   recorded_at: string
 }
+
+const PAGE_SIZE = 30
 
 const STATUS_LABEL: Record<string, string> = {
   Active: 'Active',
@@ -51,14 +53,18 @@ export default function HistoryPage() {
   const [route, setRoute] = useState<RoutePoint[] | null>(null)
   const [routeError, setRouteError] = useState<string | null>(null)
 
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+
   const load = useCallback(async () => {
     setError(null)
     try {
       const [events, logs] = await Promise.all([
-        apiJson<SosEvent[]>('/api/history'),
+        apiJson<SosEvent[]>(`/api/history?limit=${PAGE_SIZE}`),
         apiJson<ActivityLog[]>('/api/activity?limit=20'),
       ])
       setHistory(events)
+      setHasMore(events.length === PAGE_SIZE)
       setActivity(logs)
     } catch (err) {
       setError(errorMessage(err, 'Could not load your history.'))
@@ -70,6 +76,21 @@ export default function HistoryPage() {
   useEffect(() => {
     if (user) void load()
   }, [user, load])
+
+  const loadMore = async () => {
+    const oldest = history[history.length - 1]
+    if (!oldest) return
+    setLoadingMore(true)
+    try {
+      const more = await apiJson<SosEvent[]>(`/api/history?limit=${PAGE_SIZE}&before=${encodeURIComponent(oldest.started_at)}`)
+      setHistory((h) => [...h, ...more])
+      setHasMore(more.length === PAGE_SIZE)
+    } catch (err) {
+      setError(errorMessage(err, 'Could not load more events.'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const openRoute = async (event: SosEvent) => {
     setRouteFor(event)
@@ -83,7 +104,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <AppShell title="SOS History" showBack>
+    <AppShell title="History" subtitle="Every SOS and drill, with its route" showBack>
       <div className="mx-auto w-full max-w-2xl py-2">
         {loading ? (
           <div className="flex h-64 items-center justify-center" role="status">
@@ -100,15 +121,16 @@ export default function HistoryPage() {
         ) : (
           <>
             <FadeIn>
-              <div className="mb-6 flex items-center gap-3 rounded-2xl bg-secondary/60 p-4">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                  <ShieldAlert className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold">
-                    {history.length} recorded event{history.length === 1 ? '' : 's'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">SOS alerts and practice drills</p>
+              <div className="gradient-primary glow-primary relative mb-6 overflow-hidden rounded-[2rem] p-5">
+                <ShieldAlert className="pointer-events-none absolute -right-5 -top-5 size-32 opacity-15" strokeWidth={1.3} />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/75">Safety log</p>
+                <p className="mt-1 font-display text-3xl font-extrabold">
+                  {history.length} <span className="text-lg font-bold">event{history.length === 1 ? '' : 's'}</span>
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+                  <span className="rounded-2xl bg-white/15 py-2">{history.filter((e) => e.is_test !== 1).length} SOS</span>
+                  <span className="rounded-2xl bg-white/15 py-2">{history.filter((e) => e.is_test === 1).length} drills</span>
+                  <span className="rounded-2xl bg-white/15 py-2">{history.filter((e) => e.trigger_source === 'power').length} power</span>
                 </div>
               </div>
             </FadeIn>
@@ -133,13 +155,18 @@ export default function HistoryPage() {
                             drill ? 'bg-amber-500' : event.status === 'Completed' ? 'bg-success' : 'bg-destructive'
                           }`}
                         />
-                        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                        <div className="surface rounded-3xl p-4">
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="flex items-center gap-2 text-sm font-semibold">
                               <Calendar className="size-4 shrink-0 text-primary" />
                               {new Date(event.started_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
+                              {event.trigger_source === 'power' && !drill && (
+                                <Badge variant="warning">
+                                  <Zap className="mr-1 size-3" /> Power button
+                                </Badge>
+                              )}
                               {drill && (
                                 <Badge variant="secondary">
                                   <FlaskConical className="mr-1 size-3" /> Drill
@@ -168,7 +195,7 @@ export default function HistoryPage() {
                             <button
                               type="button"
                               onClick={() => void openRoute(event)}
-                              className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium transition-colors hover:bg-muted"
+                              className="gradient-primary mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold transition-transform active:scale-[0.98]"
                             >
                               <Route className="size-4" />
                               View recorded route ({event.points_count} point{event.points_count === 1 ? '' : 's'})
@@ -181,13 +208,28 @@ export default function HistoryPage() {
                 </div>
               </div>
             ) : (
-              <p className="mt-12 text-center text-sm text-muted-foreground">No SOS events or drills yet.</p>
+              <div className="surface flex flex-col items-center rounded-3xl px-6 py-10 text-center">
+                <span className="gradient-success mb-4 flex size-16 items-center justify-center rounded-3xl"><ShieldAlert className="size-8" /></span>
+                <p className="font-display text-lg font-bold">Nothing here yet</p>
+                <p className="mt-1 max-w-xs text-sm text-muted-foreground">That is a good thing. Every SOS and practice drill will appear here with its route.</p>
+              </div>
+            )}
+
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="surface-raised mt-6 min-h-12 w-full rounded-2xl text-sm font-bold disabled:opacity-60"
+              >
+                {loadingMore ? 'Loading…' : 'Load older events'}
+              </button>
             )}
 
             <FadeIn delay={0.1} className="mt-10">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activity log</h2>
               {activity.length > 0 ? (
-                <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+                <ul className="surface divide-y divide-border/70 rounded-3xl">
                   {activity.map((a) => (
                     <li key={a.id} className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">

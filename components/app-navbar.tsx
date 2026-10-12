@@ -9,39 +9,36 @@ import { cn } from '@/lib/utils'
 
 interface AppNavbarProps {
   title?: string
+  subtitle?: string
   showBack?: boolean
   showLogo?: boolean
   className?: string
 }
 
-export function AppNavbar({ title, showBack, showLogo, className }: AppNavbarProps) {
+export function AppNavbar({ title, subtitle, showBack, showLogo, className }: AppNavbarProps) {
   const router = useRouter()
 
   return (
-    <header
-      className={cn(
-        'pt-safe sticky top-0 z-30 border-b border-border/30 bg-background/95 backdrop-blur-xl',
-        className,
-      )}
-    >
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2">
-        <div className="flex min-w-0 items-center gap-2">
+    <header className={cn('nav-glass pt-safe sticky top-0 z-30', className)}>
+      <div className="flex min-h-[4.25rem] items-center justify-between gap-3 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-3">
           {showBack && (
             <button
               type="button"
               onClick={() => router.back()}
               aria-label="Go back"
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-card transition-all hover:bg-muted active:scale-95"
+              className="surface-raised flex size-11 shrink-0 items-center justify-center rounded-2xl transition-transform active:scale-90"
             >
-              <ArrowLeft className="size-5" strokeWidth={1.5} />
+              <ArrowLeft className="size-5" strokeWidth={2} />
             </button>
           )}
           {showLogo ? (
             <Logo />
           ) : (
-            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-foreground">
-              {title}
-            </h1>
+            <div className="min-w-0">
+              <h1 className="truncate font-display text-xl font-bold leading-tight tracking-tight">{title}</h1>
+              {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
+            </div>
           )}
         </div>
 
@@ -49,9 +46,9 @@ export function AppNavbar({ title, showBack, showLogo, className }: AppNavbarPro
           <Link
             href="/history"
             aria-label="SOS history"
-            className="flex size-11 items-center justify-center rounded-xl border border-border/40 bg-card transition-all hover:bg-muted active:scale-95"
+            className="surface-raised flex size-11 items-center justify-center rounded-2xl transition-transform active:scale-90"
           >
-            <History className="size-5 text-foreground" strokeWidth={1.5} />
+            <History className="size-5" strokeWidth={2} />
           </Link>
           <ModeToggle />
         </div>

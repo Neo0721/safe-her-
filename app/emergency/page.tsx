@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   Loader2,
   MapPin,
   MessageSquare,
@@ -11,7 +12,9 @@ import {
   RefreshCw,
   Siren,
   Square,
+  Zap,
 } from 'lucide-react'
+import { SystemBars, SystemBarsStyle } from '@capacitor/core'
 import { motion } from 'motion/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
@@ -30,7 +33,8 @@ import {
   type LocationError,
 } from '@/lib/location'
 import type { Contact, SosEvent, SosSettings } from '@/lib/types'
-import { generateUUID } from '@/lib/utils'
+import { isNativeApp } from '@/lib/platform'
+import { cn, generateUUID } from '@/lib/utils'
 
 type RecordState = 'pending' | 'recorded' | 'failed'
 type Opened = Record<string, 'call' | 'sms'>
@@ -53,6 +57,7 @@ function EmergencyScreen() {
 
   const wantsStart = params.get('start') === '1'
   const wantsDrill = params.get('drill') === '1'
+  const source: 'hold' | 'power' = params.get('source') === 'power' ? 'power' : 'hold'
 
   const [sosId, setSosId] = useState<string | null>(null)
   const [isDrill, setIsDrill] = useState(wantsDrill)
@@ -69,6 +74,8 @@ function EmergencyScreen() {
   const [opened, setOpened] = useState<Opened>({})
   const [countdown, setCountdown] = useState(0)
   const [ending, setEnding] = useState(false)
+  const [startedAt, setStartedAt] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
   const [endError, setEndError] = useState<string | null>(null)
 
   const [recording, setRecording] = useState(false)
@@ -86,14 +93,25 @@ function EmergencyScreen() {
   const recordedRef = useRef(false) // true once the server has this SOS event
   const flushingRef = useRef(false)
   const isDrillRef = useRef(wantsDrill)
+  const sourceRef = useRef<'hold' | 'power'>(source)
   const settingsRef = useRef<SosSettings | null>(null)
 
-  // Match the Android status-bar strip to this screen's dark-red background.
+  // This screen is always dark: match the status-bar strip and force light status-bar icons.
   useEffect(() => {
-    document.documentElement.style.setProperty('--statusbar-bg', '#12060a')
+    const root = document.documentElement
+    root.style.setProperty('--statusbar-bg', '#0b0510')
+    root.setAttribute('data-dark-screen', '1')
+    if (isNativeApp()) SystemBars.setStyle({ style: SystemBarsStyle.Dark }).catch(() => {})
     return () => {
-      document.documentElement.style.removeProperty('--statusbar-bg')
+      root.style.removeProperty('--statusbar-bg')
+      root.removeAttribute('data-dark-screen')
     }
+  }, [])
+
+  // Live elapsed clock.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
   }, [])
 
   // ---- location uploads -------------------------------------------------------------------
@@ -110,7 +128,7 @@ function EmergencyScreen() {
     if (!id) return false
     if (recordedRef.current) return true
     try {
-      await apiJson('/api/sos', { method: 'POST', json: { id, is_test: isDrillRef.current } })
+      await apiJson('/api/sos', { method: 'POST', json: { id, is_test: isDrillRef.current, source: sourceRef.current } })
       recordedRef.current = true
       setRecordState('recorded')
       setRecordError(null)
@@ -291,8 +309,9 @@ function EmergencyScreen() {
     }
 
     // The end-delay counts from the real start time, also when resuming.
+    const startedAt = resumed ? resumed.startedAt : Date.now()
+    setStartedAt(startedAt)
     if (!drill) {
-      const startedAt = resumed ? resumed.startedAt : Date.now()
       const elapsed = Math.floor((Date.now() - startedAt) / 1000)
       setCountdown(Math.max(CONFIG.sosCancelDelaySeconds - elapsed, 0))
     }
@@ -380,200 +399,215 @@ function EmergencyScreen() {
     ? `EMERGENCY: I may need help. My current location: ${mapsUrl}`
     : 'EMERGENCY: I may need help. My GPS location is not available right now.'
 
-  return (
-    <main className="animate-emergency-flash relative mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 bg-[#12060a] px-4 pb-[calc(1.5rem+var(--sab))] pt-[calc(1rem+var(--sat))] text-white">
-      <div
-        className={`mx-auto flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${
-          isDrill ? 'bg-amber-500/20 text-amber-200' : 'bg-white/10 text-red-200'
-        }`}
-      >
-        <span className={`size-2 animate-pulse rounded-full ${isDrill ? 'bg-amber-400' : 'bg-red-500'}`} />
-        {isDrill ? 'DRILL · Practice mode' : 'Live · Emergency active'}
-      </div>
+  const elapsedSec = startedAt ? Math.max(Math.floor((now - startedAt) / 1000), 0) : 0
+  const elapsedLabel = `${String(Math.floor(elapsedSec / 60)).padStart(2, '0')}:${String(elapsedSec % 60).padStart(2, '0')}`
+  const accent = isDrill ? 'gradient-warm' : 'gradient-danger'
 
-      <div className="flex flex-col items-center text-center">
-        <div className="relative mb-4 flex items-center justify-center">
-          <span className="absolute size-36 animate-ping rounded-full bg-red-500/20" />
-          <motion.div
-            animate={{ scale: [1, 1.08, 1] }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
-            className={`flex size-24 items-center justify-center rounded-full shadow-2xl ${isDrill ? 'bg-amber-600' : 'bg-red-600'}`}
-          >
-            <Siren className="size-12" />
-          </motion.div>
-        </div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">
-          {isDrill ? 'SOS Drill' : 'Emergency Activated'}
-        </h1>
-        {isDrill && (
-          <p className="mt-1 text-sm text-amber-100/80">
-            This is a practice run. Your contacts and the emergency number are not contacted.
-          </p>
+  return (
+    <main className="bg-aurora-danger relative mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pb-[calc(1.5rem+var(--sab))] pt-[calc(1rem+var(--sat))] text-white">
+      {/* Header chips */}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <span
+          className={cn(
+            'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest',
+            isDrill ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-rose-100',
+          )}
+        >
+          <span className={cn('size-2 animate-pulse rounded-full', isDrill ? 'bg-amber-300' : 'bg-rose-400')} />
+          {isDrill ? 'Drill · practice mode' : 'Live · emergency active'}
+        </span>
+        <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold tabular-nums text-white/90">
+          <Clock className="size-3.5" />
+          {elapsedLabel}
+        </span>
+        {source === 'power' && !isDrill && (
+          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white/90">
+            <Zap className="size-3.5" />
+            Power-button trigger
+          </span>
         )}
       </div>
 
-      {/* Honest status panel */}
-      <section className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm" aria-live="polite">
-        <StatusRow
+      {/* Hero */}
+      <div className="flex flex-col items-center py-2 text-center">
+        <div className="relative mb-5 flex size-40 items-center justify-center">
+          <span className="animate-ripple absolute inset-0 rounded-full bg-rose-500/30" />
+          <span className="animate-ripple absolute inset-0 rounded-full bg-rose-500/20" style={{ animationDelay: '1.2s' }} />
+          <motion.div
+            animate={{ scale: [1, 1.07, 1] }}
+            transition={{ duration: 1.1, repeat: Number.POSITIVE_INFINITY }}
+            className={cn('glow-danger relative flex size-28 items-center justify-center rounded-full ring-4 ring-white/15', accent)}
+          >
+            <Siren className="size-14" strokeWidth={1.8} />
+          </motion.div>
+        </div>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">{isDrill ? 'SOS drill' : 'Emergency activated'}</h1>
+        <p className="mt-1.5 max-w-xs text-sm text-white/70">
+          {isDrill
+            ? 'This is a practice run. Your contacts and the emergency number are not contacted.'
+            : 'Your location is being recorded. Call for help below.'}
+        </p>
+      </div>
+
+      {/* Honest status tiles */}
+      <section className="grid grid-cols-3 gap-2" aria-live="polite">
+        <StatusTile
           icon={<MapPin className="size-4" />}
           label="GPS"
-          value={
-            fix
-              ? `${fix.lat.toFixed(5)}, ${fix.lng.toFixed(5)} (±${Math.round(fix.accuracy)} m)`
-              : gpsStatus
-          }
+          value={fix ? `±${Math.round(fix.accuracy)} m` : gpsStatus}
           tone={fix ? 'ok' : gpsError ? 'bad' : 'wait'}
         />
-        <StatusRow
+        <StatusTile
           icon={<CheckCircle2 className="size-4" />}
-          label="SOS record"
-          value={
-            recordState === 'recorded'
-              ? 'Saved to your history'
-              : recordState === 'failed'
-                ? 'Not saved yet (server unreachable)'
-                : 'Saving…'
-          }
+          label="Record"
+          value={recordState === 'recorded' ? 'Saved' : recordState === 'failed' ? 'Not saved' : 'Saving…'}
           tone={recordState === 'recorded' ? 'ok' : recordState === 'failed' ? 'bad' : 'wait'}
         />
-        <StatusRow
+        <StatusTile
           icon={<RefreshCw className="size-4" />}
-          label="Location updates"
+          label="Updates"
           value={
             settings && settings.location_sharing !== 1
-              ? 'Not stored (turned off in SOS settings)'
-              : `${savedPoints} saved${failedUploads > 0 ? ` · ${failedUploads} waiting to upload` : ''}`
+              ? 'Off'
+              : `${savedPoints}${failedUploads > 0 ? ` · ${failedUploads} queued` : ''}`
           }
           tone={failedUploads > 0 ? 'bad' : 'ok'}
         />
+      </section>
+      {fix && (
+        <p className="-mt-2 text-center text-xs tabular-nums text-white/60">
+          {fix.lat.toFixed(5)}, {fix.lng.toFixed(5)}
+        </p>
+      )}
 
-        {recordError && (
-          <div className="flex items-start gap-2 rounded-xl bg-red-950/60 p-3 text-xs text-red-200">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p>{recordError}</p>
-              <p className="mt-1 text-red-300/80">You can still call for help below. GPS points are kept and uploaded when the server is reachable.</p>
-              <button type="button" onClick={retryRecord} className="mt-2 inline-flex min-h-11 items-center rounded-lg bg-white/10 px-3 font-semibold">
-                Retry saving
-              </button>
-            </div>
-          </div>
-        )}
-
-        {gpsError && (
-          <div className="rounded-xl bg-red-950/60 p-3 text-xs text-red-200">
-            <p>
-              {gpsError.code === 'denied'
-                ? 'Location permission is off. Enable it for SafeHer in your phone settings so contacts can be sent your position.'
-                : 'No GPS fix yet. Move to an open area if possible.'}
-            </p>
-            <button type="button" onClick={() => void startGps()} className="mt-2 inline-flex min-h-11 items-center rounded-lg bg-white/10 px-3 font-semibold">
-              Retry GPS
+      {recordError && (
+        <div className="flex items-start gap-2 rounded-2xl bg-rose-950/70 p-3 text-xs text-rose-100 ring-1 ring-rose-400/20">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p>{recordError}</p>
+            <p className="mt-1 text-rose-200/80">You can still call for help below. GPS points are kept and uploaded when the server is reachable.</p>
+            <button type="button" onClick={retryRecord} className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-white/10 px-4 font-semibold">
+              Retry saving
             </button>
           </div>
-        )}
-        {settingsNote && <p className="text-xs text-amber-200/90">{settingsNote}</p>}
-      </section>
+        </div>
+      )}
+
+      {gpsError && (
+        <div className="rounded-2xl bg-rose-950/70 p-3 text-xs text-rose-100 ring-1 ring-rose-400/20">
+          <p>
+            {gpsError.code === 'denied'
+              ? 'Location permission is off. Enable it for SafeHer in your phone settings so contacts can be sent your position.'
+              : 'No GPS fix yet. Move to an open area if possible.'}
+          </p>
+          <button type="button" onClick={() => void startGps()} className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-white/10 px-4 font-semibold">
+            Retry GPS
+          </button>
+        </div>
+      )}
+      {settingsNote && <p className="text-xs text-amber-200/90">{settingsNote}</p>}
 
       {/* Call / SMS actions: these open the phone's dialer and SMS composer only. */}
       {!isDrill && (
-        <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-red-300">Get help now</p>
-
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-950/30 p-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-red-100">Emergency number</p>
-              <p className="text-xs text-red-300/80">{CONFIG.emergencyNumber}</p>
-            </div>
-            <a
-              href={`tel:${CONFIG.emergencyNumber}`}
-              onClick={() => {
-                setOpened((o) => ({ ...o, emergency: 'call' }))
-                logAction('call_emergency')
-              }}
-              className="flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-bold text-white active:scale-95"
-            >
-              <PhoneCall className="size-4" />
-              {opened.emergency ? 'Dialer opened' : `Call ${CONFIG.emergencyNumber}`}
-            </a>
-          </div>
+        <section className="space-y-3">
+          <a
+            href={`tel:${CONFIG.emergencyNumber}`}
+            onClick={() => {
+              setOpened((o) => ({ ...o, emergency: 'call' }))
+              logAction('call_emergency')
+            }}
+            className="gradient-danger glow-danger flex min-h-16 items-center justify-center gap-3 rounded-3xl px-5 font-display text-lg font-extrabold active:scale-[0.98]"
+          >
+            <PhoneCall className="size-6" />
+            {opened.emergency ? 'Dialer opened' : `Call ${CONFIG.emergencyNumber} now`}
+          </a>
 
           {notifyContacts ? (
             contacts.length > 0 ? (
-              contacts.map((c) => (
-                <div key={c.id} className="rounded-xl border border-white/5 bg-white/5 p-3">
-                  <p className="truncate text-sm font-bold">
-                    {c.name} <span className="font-normal text-white/60">({c.relationship})</span>
-                  </p>
-                  <p className="text-xs text-white/60">{c.phone}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <a
-                      href={`tel:${c.phone}`}
-                      onClick={() => {
-                        setOpened((o) => ({ ...o, [`call-${c.id}`]: 'call' }))
-                        logAction('call_contact', c.id)
-                      }}
-                      className="flex min-h-12 items-center justify-center gap-1.5 rounded-xl bg-white/10 text-sm font-semibold active:scale-95"
-                    >
-                      <PhoneCall className="size-4" />
-                      {opened[`call-${c.id}`] ? 'Dialer opened' : 'Call'}
-                    </a>
-                    <a
-                      href={`sms:${c.phone}?body=${encodeURIComponent(smsBody)}`}
-                      onClick={() => {
-                        setOpened((o) => ({ ...o, [`sms-${c.id}`]: 'sms' }))
-                        logAction('sms_contact', c.id)
-                      }}
-                      className="flex min-h-12 items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-semibold text-white active:scale-95"
-                    >
-                      <MessageSquare className="size-4" />
-                      {opened[`sms-${c.id}`] ? 'Composer opened' : 'SMS'}
-                    </a>
+              <div className="space-y-2">
+                <p className="px-1 text-[11px] font-bold uppercase tracking-widest text-white/50">Your circle</p>
+                {contacts.map((c) => (
+                  <div key={c.id} className="rounded-3xl bg-white/[0.07] p-3 ring-1 ring-white/10">
+                    <div className="flex items-center gap-3">
+                      <span className="gradient-primary flex size-11 shrink-0 items-center justify-center rounded-2xl font-display font-bold">
+                        {c.name.charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold">{c.name}</p>
+                        <p className="truncate text-xs text-white/60">
+                          {c.relationship} · {c.phone}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <a
+                        href={`tel:${c.phone}`}
+                        onClick={() => {
+                          setOpened((o) => ({ ...o, [`call-${c.id}`]: 'call' }))
+                          logAction('call_contact', c.id)
+                        }}
+                        className="flex min-h-12 items-center justify-center gap-1.5 rounded-2xl bg-white/10 text-sm font-semibold active:scale-95"
+                      >
+                        <PhoneCall className="size-4" />
+                        {opened[`call-${c.id}`] ? 'Dialer opened' : 'Call'}
+                      </a>
+                      <a
+                        href={`sms:${c.phone}?body=${encodeURIComponent(smsBody)}`}
+                        onClick={() => {
+                          setOpened((o) => ({ ...o, [`sms-${c.id}`]: 'sms' }))
+                          logAction('sms_contact', c.id)
+                        }}
+                        className="gradient-primary flex min-h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-semibold active:scale-95"
+                      >
+                        <MessageSquare className="size-4" />
+                        {opened[`sms-${c.id}`] ? 'Composer opened' : 'Share location'}
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
-              <p className="py-2 text-center text-xs text-white/60">No emergency contacts yet. Add them from the Contacts tab.</p>
+              <p className="rounded-2xl bg-white/[0.06] py-3 text-center text-xs text-white/60">No contacts yet. Add them from the Circle tab.</p>
             )
           ) : (
-            <p className="text-xs text-white/60">Contact shortcuts are turned off in your SOS settings.</p>
+            <p className="text-center text-xs text-white/60">Contact shortcuts are turned off in your SOS settings.</p>
           )}
 
-          <p className="text-[11px] leading-snug text-white/50">
-            SafeHer opens your phone&apos;s dialer or SMS app. You must press call or send there; SafeHer cannot tell whether a call connected or a message was sent.
+          <p className="px-1 text-[11px] leading-snug text-white/45">
+            SafeHer opens your phone&apos;s dialer or SMS app. You press call or send there; SafeHer cannot tell whether a call connected or a message was sent.
           </p>
         </section>
       )}
 
       {settings?.audio_recording === 1 && (
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+        <section className="rounded-3xl bg-white/[0.07] p-4 text-sm ring-1 ring-white/10">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-2 font-semibold">
-              <Mic className={`size-4 ${recording ? 'animate-pulse text-red-400' : 'text-white/60'}`} />
+              <Mic className={cn('size-4', recording ? 'animate-pulse text-rose-400' : 'text-white/60')} />
               {recording ? 'Recording audio…' : audioUrl ? 'Recording stopped' : 'Audio not recording'}
             </span>
             {recording && (
-              <button type="button" onClick={stopRecording} className="flex min-h-11 items-center gap-1 rounded-lg bg-red-600/30 px-3 text-xs font-bold">
+              <button type="button" onClick={stopRecording} className="flex min-h-11 items-center gap-1 rounded-xl bg-rose-600/30 px-3 text-xs font-bold">
                 <Square className="size-3" /> Stop
               </button>
             )}
           </div>
           {audioNote && <p className="mt-2 text-xs text-amber-200/90">{audioNote}</p>}
           {audioUrl && <audio src={audioUrl} controls className="mt-2 w-full" />}
-          <p className="mt-2 text-[11px] leading-snug text-white/50">
+          <p className="mt-2 text-[11px] leading-snug text-white/45">
             The recording exists only in this app&apos;s memory. It is not uploaded or saved, and is lost when you leave this screen.
           </p>
         </section>
       )}
 
       {endError && (
-        <div className="rounded-xl bg-red-950/70 p-3 text-xs text-red-200" role="alert">
+        <div className="rounded-2xl bg-rose-950/80 p-3 text-xs text-rose-100 ring-1 ring-rose-400/20" role="alert">
           <p>{endError}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" onClick={() => void endSos('Completed')} className="min-h-11 rounded-lg bg-white/10 px-3 font-semibold">
+            <button type="button" onClick={() => void endSos('Completed')} className="min-h-11 rounded-xl bg-white/10 px-4 font-semibold">
               Try again
             </button>
-            <button type="button" onClick={leaveWithoutSyncing} className="min-h-11 rounded-lg bg-white/10 px-3 font-semibold">
+            <button type="button" onClick={leaveWithoutSyncing} className="min-h-11 rounded-xl bg-white/10 px-4 font-semibold">
               Leave anyway
             </button>
           </div>
@@ -585,7 +619,7 @@ function EmergencyScreen() {
           type="button"
           disabled={lockedByDelay || ending || !sosId}
           onClick={() => void endSos('Completed')}
-          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-sm font-semibold text-[#12060a] transition-all disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/60"
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-3xl bg-white font-display text-base font-bold text-[#12060a] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/50"
         >
           {ending ? (
             <>
@@ -596,7 +630,7 @@ function EmergencyScreen() {
           ) : isDrill ? (
             'End drill'
           ) : (
-            "I'm safe — end SOS"
+            "I'm safe, end SOS"
           )}
         </button>
         {!isDrill && (
@@ -604,9 +638,9 @@ function EmergencyScreen() {
             type="button"
             disabled={lockedByDelay || ending || !sosId}
             onClick={() => void endSos('Cancelled')}
-            className="min-h-12 w-full rounded-2xl border border-white/20 text-sm font-medium text-white/80 disabled:opacity-40"
+            className="min-h-12 w-full rounded-3xl text-sm font-semibold text-white/75 ring-1 ring-white/20 disabled:opacity-40"
           >
-            Accidental trigger — cancel
+            Accidental trigger, cancel
           </button>
         )}
       </div>
@@ -614,7 +648,7 @@ function EmergencyScreen() {
   )
 }
 
-function StatusRow({
+function StatusTile({
   icon,
   label,
   value,
@@ -625,14 +659,14 @@ function StatusRow({
   value: string
   tone: 'ok' | 'wait' | 'bad'
 }) {
-  const color = tone === 'ok' ? 'text-emerald-300' : tone === 'bad' ? 'text-red-300' : 'text-amber-200'
+  const color = tone === 'ok' ? 'text-emerald-300' : tone === 'bad' ? 'text-rose-300' : 'text-amber-200'
   return (
-    <div className="flex items-start justify-between gap-3">
-      <span className="flex shrink-0 items-center gap-2 text-white/60">
+    <div className="min-w-0 rounded-2xl bg-white/[0.07] p-3 ring-1 ring-white/10">
+      <span className={cn('flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide', color)}>
         {icon}
         {label}
       </span>
-      <span className={`min-w-0 break-words text-right font-medium ${color}`}>{value}</span>
+      <p className="mt-1.5 break-words text-sm font-bold leading-tight">{value}</p>
     </div>
   )
 }

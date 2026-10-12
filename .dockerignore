@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+!.env.local.example
+data
+android
+expo-app
+.idea
+*.md
+!README.md
+Dockerfile
+.dockerignore

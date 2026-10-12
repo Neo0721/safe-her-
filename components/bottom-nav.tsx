@@ -30,7 +30,7 @@ export function BottomNav() {
       aria-label="Primary navigation"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md justify-center px-4 pb-[calc(0.9rem+var(--sab))]"
     >
-      <div className="surface-raised pointer-events-auto relative flex w-full items-center justify-between rounded-[1.75rem] bg-card/90 px-2 py-2 backdrop-blur-xl">
+      <div className="surface pointer-events-auto relative flex w-full items-center justify-between rounded-[2rem] bg-card/80 px-2 py-2 shadow-[0_20px_50px_-16px_rgb(139_92_246/0.45)] backdrop-blur-xl">
         {items.slice(0, 2).map((item) => (
           <NavItem key={item.href} {...item} active={pathname === item.href} />
         ))}
@@ -73,12 +73,11 @@ function NavItem({ href, label, icon: Icon, active }: { href: string; label: str
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex min-h-14 min-w-[3.75rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 font-semibold transition-all duration-200',
-        active ? 'text-primary' : 'text-muted-foreground active:scale-95',
+        'relative flex min-h-14 min-w-[3.75rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.4rem] px-1 py-1.5 font-semibold transition-all duration-200',
+        active ? 'gradient-primary shadow-[0_8px_20px_-8px_rgb(168_85_247/0.8)]' : 'text-muted-foreground active:scale-95',
       )}
     >
-      {active && <span className="absolute inset-x-1 inset-y-0.5 -z-0 rounded-2xl bg-primary/12" aria-hidden="true" />}
-      <Icon className={cn('relative size-[1.4rem]', active && 'drop-shadow-[0_2px_6px_rgb(124_58_237/0.45)]')} strokeWidth={active ? 2.4 : 2} />
+      <Icon className="relative size-[1.35rem]" strokeWidth={active ? 2.3 : 1.9} />
       <span className="relative text-[11px] leading-tight">{label}</span>
     </Link>
   )

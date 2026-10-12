@@ -152,7 +152,7 @@ export default function SosSettingsPage() {
               <div className="gradient-primary relative p-5">
                 <Power className="pointer-events-none absolute -right-4 -top-4 size-28 opacity-15" strokeWidth={1.4} />
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/75">Quick trigger</p>
-                <h2 className="mt-1 font-display text-xl font-bold leading-tight">Press the power button to start an SOS</h2>
+                <h2 className="mt-1 font-serif text-2xl font-semibold leading-tight">Press the power button to start an SOS</h2>
                 <p className="mt-1.5 text-sm text-white/85">
                   No need to unlock or open the app. Press the power button several times in a row; SafeHer vibrates and opens the emergency screen.
                 </p>
@@ -243,7 +243,7 @@ export default function SosSettingsPage() {
           {/* Hold duration */}
           <FadeIn delay={0.05}>
             <section className="surface rounded-3xl p-4">
-              <h2 className="flex items-center gap-2 font-display text-base font-bold">
+              <h2 className="flex items-center gap-2 font-serif text-xl font-semibold">
                 <Timer className="size-5 text-primary" /> Hold duration
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">How long you hold the red SOS button. Longer means fewer accidental alerts.</p>
@@ -273,7 +273,7 @@ export default function SosSettingsPage() {
           {/* During an SOS */}
           <FadeIn delay={0.1}>
             <section className="space-y-3">
-              <h2 className="flex items-center gap-2 px-1 font-display text-base font-bold">
+              <h2 className="flex items-center gap-2 px-1 font-serif text-xl font-semibold">
                 <ShieldAlert className="size-5 text-primary" /> During an SOS
               </h2>
               <SettingsToggle icon={Navigation} tone="sky" label="Save live location" description="Store your GPS position in your history while an SOS runs" checked={locationSharing} onCheckedChange={setLocationSharing} />

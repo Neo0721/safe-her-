@@ -158,7 +158,7 @@ export default function ContactsPage() {
           <span className="gradient-primary mb-4 flex size-16 items-center justify-center rounded-3xl">
             <Users className="size-8" />
           </span>
-          <p className="font-display text-lg font-bold">Your circle is empty</p>
+          <p className="font-serif text-2xl font-semibold">Your circle is empty</p>
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">Add at least one trusted person so they are one tap away when you need help.</p>
         </div>
       )}

@@ -62,7 +62,7 @@ export default function PermissionsPage() {
       <div className="mx-auto w-full max-w-2xl space-y-5 py-2">
         <FadeIn>
           <div className="gradient-primary glow-primary rounded-[2rem] p-5">
-            <h2 className="font-display text-xl font-extrabold text-balance">Allow what SafeHer needs</h2>
+            <h2 className="font-serif text-2xl font-semibold text-balance">Allow what SafeHer needs</h2>
             <p className="mt-1 text-sm text-white/85 text-pretty">
               Your phone will ask for each permission. SafeHer only asks for what it actually uses.
             </p>

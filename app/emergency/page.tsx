@@ -441,7 +441,7 @@ function EmergencyScreen() {
             <Siren className="size-14" strokeWidth={1.8} />
           </motion.div>
         </div>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">{isDrill ? 'SOS drill' : 'Emergency activated'}</h1>
+        <h1 className="font-serif text-4xl font-semibold tracking-tight">{isDrill ? 'SOS drill' : 'Emergency activated'}</h1>
         <p className="mt-1.5 max-w-xs text-sm text-white/70">
           {isDrill
             ? 'This is a practice run. Your contacts and the emergency number are not contacted.'

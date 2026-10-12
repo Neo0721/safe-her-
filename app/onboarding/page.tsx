@@ -86,7 +86,7 @@ export default function OnboardingPage() {
                   <Image src={slide.image} alt="" fill priority sizes="260px" className="object-contain" />
                 </motion.div>
               </div>
-              <h2 className="text-balance font-display text-[1.7rem] font-extrabold leading-tight tracking-tight">{slide.title}</h2>
+              <h2 className="text-balance font-serif text-[2rem] font-semibold leading-tight tracking-tight">{slide.title}</h2>
               <p className="mt-3 max-w-sm text-pretty leading-relaxed text-muted-foreground">{slide.description}</p>
             </motion.div>
           </AnimatePresence>

@@ -16,7 +16,7 @@ export function AuthHero({ title, subtitle, children }: { title: string; subtitl
         <ModeToggle className="border-white/20 bg-white/15 text-white" />
       </div>
       <div className="relative mt-8">
-        <h1 className="font-display text-[2rem] font-extrabold leading-tight tracking-tight">{title}</h1>
+        <h1 className="font-serif text-[2.4rem] font-semibold leading-[1.1] tracking-tight">{title}</h1>
         <p className="mt-2 max-w-xs text-sm text-white/85">{subtitle}</p>
         {children}
       </div>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Poppins } from 'next/font/google'
+import { Fraunces, Inter, Poppins } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -14,6 +14,14 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+})
+
+// Soft editorial serif for big headings: gives the app a warmer, more distinctive voice.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  display: 'swap',
+  axes: ['SOFT', 'opsz'],
 })
 
 const poppins = Poppins({
@@ -57,7 +65,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${poppins.variable} bg-background`}
+      className={`${inter.variable} ${poppins.variable} ${fraunces.variable} bg-background`}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">

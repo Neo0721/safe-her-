@@ -40,7 +40,7 @@ export default function SplashPage() {
           initial={{ y: 16, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="font-display text-5xl font-extrabold tracking-tight"
+          className="font-serif text-6xl font-semibold tracking-tight"
         >
           Safe<span className="text-pink-300">Her</span>
         </motion.h1>

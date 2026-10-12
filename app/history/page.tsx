@@ -124,7 +124,7 @@ export default function HistoryPage() {
               <div className="gradient-primary glow-primary relative mb-6 overflow-hidden rounded-[2rem] p-5">
                 <ShieldAlert className="pointer-events-none absolute -right-5 -top-5 size-32 opacity-15" strokeWidth={1.3} />
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/75">Safety log</p>
-                <p className="mt-1 font-display text-3xl font-extrabold">
+                <p className="mt-1 font-serif text-4xl font-semibold">
                   {history.length} <span className="text-lg font-bold">event{history.length === 1 ? '' : 's'}</span>
                 </p>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
@@ -210,7 +210,7 @@ export default function HistoryPage() {
             ) : (
               <div className="surface flex flex-col items-center rounded-3xl px-6 py-10 text-center">
                 <span className="gradient-success mb-4 flex size-16 items-center justify-center rounded-3xl"><ShieldAlert className="size-8" /></span>
-                <p className="font-display text-lg font-bold">Nothing here yet</p>
+                <p className="font-serif text-2xl font-semibold">Nothing here yet</p>
                 <p className="mt-1 max-w-xs text-sm text-muted-foreground">That is a good thing. Every SOS and practice drill will appear here with its route.</p>
               </div>
             )}

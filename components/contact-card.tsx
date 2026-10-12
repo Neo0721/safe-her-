@@ -28,7 +28,7 @@ export function ContactCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="min-w-0 truncate font-display text-base font-bold">{contact.name}</p>
+            <p className="min-w-0 truncate font-serif text-lg font-semibold">{contact.name}</p>
             <Badge variant={priorityVariant[contact.priority]}>{contact.priority}</Badge>
           </div>
           <p className="truncate text-sm text-muted-foreground">{contact.relationship}</p>

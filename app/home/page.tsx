@@ -37,10 +37,10 @@ import type { ActivityLog, Contact, SosSettings } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 
 const quickActions = [
-  { label: 'Live location', hint: 'Track on the map', icon: MapPin, href: '/tracking', tone: 'gradient-sky' },
-  { label: 'My circle', hint: 'Trusted contacts', icon: Users, href: '/contacts', tone: 'gradient-primary' },
-  { label: 'SOS settings', hint: 'Triggers & timing', icon: Settings2, href: '/sos-settings', tone: 'gradient-warm' },
-  { label: 'History', hint: 'Past SOS & drills', icon: History, href: '/history', tone: 'gradient-success' },
+  { label: 'Live location', hint: 'Track on the map', icon: MapPin, href: '/tracking', chip: 'gradient-sky', tile: 'bg-sky-100/80 dark:bg-sky-400/10' },
+  { label: 'My circle', hint: 'Trusted contacts', icon: Users, href: '/contacts', chip: 'gradient-primary', tile: 'bg-violet-100/80 dark:bg-violet-400/10' },
+  { label: 'SOS settings', hint: 'Triggers & timing', icon: Settings2, href: '/sos-settings', chip: 'gradient-warm', tile: 'bg-orange-100/80 dark:bg-orange-400/10' },
+  { label: 'History', hint: 'Past SOS & drills', icon: History, href: '/history', chip: 'gradient-success', tile: 'bg-emerald-100/80 dark:bg-emerald-400/10' },
 ] as const
 
 function greetingFor(date = new Date()) {
@@ -169,7 +169,7 @@ export default function HomePage() {
       <FadeIn className="mb-1 mt-1 flex items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">{greetingFor()}</p>
-          <h1 className="truncate font-display text-3xl font-extrabold tracking-tight">
+          <h1 className="truncate font-serif text-[2.35rem] font-semibold leading-[1.1] tracking-tight">
             {loading ? <Skeleton className="mt-1 h-9 w-40 rounded-xl" /> : displayName || 'there'}
           </h1>
         </div>
@@ -275,10 +275,10 @@ export default function HomePage() {
                   style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center font-display text-lg font-bold">{percent}%</span>
+              <span className="absolute inset-0 flex items-center justify-center font-serif text-lg font-semibold">{percent}%</span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 font-display text-lg font-bold leading-tight">
+              <p className="flex items-center gap-1.5 font-serif text-xl font-semibold leading-tight">
                 <ShieldCheck className={cn('size-5 shrink-0', ready ? 'text-success' : 'text-warning')} />
                 {known.length === 0 ? 'Checking…' : ready ? "You're ready" : `${needs.length} thing${needs.length === 1 ? '' : 's'} to fix`}
               </p>
@@ -324,21 +324,28 @@ export default function HomePage() {
 
       {/* Quick actions */}
       <FadeIn delay={0.15} className="mb-6">
-        <h2 className="mb-3 px-1 font-display text-base font-bold">Quick actions</h2>
+        <h2 className="mb-3 px-1 font-serif text-xl font-semibold">Quick actions</h2>
         <Stagger className="grid grid-cols-2 gap-3">
           {quickActions.map((a) => (
             <StaggerItem key={a.label}>
               <Link
                 href={a.href}
-                className={cn('relative flex min-h-[7.5rem] flex-col justify-between overflow-hidden rounded-3xl p-4 shadow-lg active:scale-[0.97] transition-transform', a.tone)}
+                className={cn(
+                  'relative flex min-h-[8rem] flex-col justify-between overflow-hidden rounded-[1.75rem] border border-white/60 p-4 shadow-[0_14px_30px_-18px_rgb(76_29_149/0.35)] transition-transform active:scale-[0.97] dark:border-white/10',
+                  a.tile,
+                )}
               >
-                <a.icon className="pointer-events-none absolute -bottom-3 -right-3 size-20 opacity-20" strokeWidth={1.5} />
-                <span className="flex size-10 items-center justify-center rounded-2xl bg-white/20">
-                  <a.icon className="size-5" />
+                <span className="flex items-start justify-between">
+                  <span className={cn('flex size-11 items-center justify-center rounded-2xl shadow-md', a.chip)}>
+                    <a.icon className="size-5" />
+                  </span>
+                  <span className="flex size-8 items-center justify-center rounded-full bg-white/70 text-foreground/70 dark:bg-white/10">
+                    <ChevronRight className="size-4" />
+                  </span>
                 </span>
                 <span>
-                  <span className="block font-display text-[15px] font-bold leading-tight">{a.label}</span>
-                  <span className="block text-xs text-white/80">{a.hint}</span>
+                  <span className="block font-serif text-lg font-semibold leading-tight">{a.label}</span>
+                  <span className="block text-xs text-muted-foreground">{a.hint}</span>
                 </span>
               </Link>
             </StaggerItem>
@@ -354,7 +361,7 @@ export default function HomePage() {
           </div>
           <div className="min-w-0 flex-1 p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Safety tip · {tip.category}</p>
-            <p className="mt-1 font-display text-[15px] font-bold leading-snug">{tip.title}</p>
+            <p className="mt-1 font-serif text-[17px] font-semibold leading-snug">{tip.title}</p>
             <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{tip.description}</p>
           </div>
         </Link>
@@ -363,7 +370,7 @@ export default function HomePage() {
       {/* Recent activity */}
       <FadeIn delay={0.25} className="mb-6">
         <div className="mb-3 flex items-center justify-between px-1">
-          <h2 className="font-display text-base font-bold">Recent activity</h2>
+          <h2 className="font-serif text-xl font-semibold">Recent activity</h2>
           <Link href="/history" className="flex min-h-11 items-center gap-0.5 text-xs font-semibold text-primary">
             View all <ChevronRight className="size-4" />
           </Link>

@@ -143,7 +143,7 @@ export default function ProfilePage() {
                 </button>
               </div>
               <div className="min-w-0 flex-1 text-white">
-                <h2 className="break-words font-display text-xl font-extrabold leading-tight">{profile?.full_name || "No name set"}</h2>
+                <h2 className="break-words font-serif text-2xl font-semibold leading-tight">{profile?.full_name || "No name set"}</h2>
                 <p className="mt-0.5 break-all text-sm text-white/85">{user?.email || profile?.email}</p>
                 {profile?.blood_group && (
                   <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold">

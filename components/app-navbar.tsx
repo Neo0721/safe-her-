@@ -36,7 +36,7 @@ export function AppNavbar({ title, subtitle, showBack, showLogo, className }: Ap
             <Logo />
           ) : (
             <div className="min-w-0">
-              <h1 className="truncate font-display text-xl font-bold leading-tight tracking-tight">{title}</h1>
+              <h1 className="truncate font-serif text-[1.65rem] font-semibold leading-tight tracking-tight">{title}</h1>
               {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
             </div>
           )}

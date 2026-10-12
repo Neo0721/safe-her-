@@ -213,7 +213,7 @@ export default function TrackingPage() {
         className="relative z-[1000] max-h-[62dvh] overflow-y-auto rounded-t-[2rem] border-t border-border bg-card p-5 pb-[calc(1.25rem+var(--sab))] shadow-[0_-12px_40px_-12px_rgb(0_0_0/0.35)]"
       >
         <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
-        <h1 className="font-display text-xl font-extrabold tracking-tight">Live location</h1>
+        <h1 className="font-serif text-2xl font-semibold tracking-tight">Live location</h1>
         <p className="text-sm text-muted-foreground">
           {fix ? 'Your real GPS position is being recorded to your SafeHer history.' : 'Waiting for a real GPS fix…'}
         </p>

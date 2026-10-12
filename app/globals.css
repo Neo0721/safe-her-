@@ -7,6 +7,7 @@
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,21 +50,21 @@
 /* ------------------------------------------------------------------ */
 :root {
   color-scheme: light;
-  --radius: 1.1rem;
+  --radius: 1.25rem;
 
-  --background: #f6f3ff;
-  --foreground: #19123a;
+  --background: #fbf8ff;
+  --foreground: #2a1745;
   --card: #ffffff;
-  --card-foreground: #19123a;
+  --card-foreground: #2a1745;
   --popover: #ffffff;
-  --popover-foreground: #19123a;
+  --popover-foreground: #2a1745;
 
   --primary: #7c3aed;
   --primary-foreground: #ffffff;
-  --secondary: #ede8fd;
+  --secondary: #f1e9ff;
   --secondary-foreground: #4c1d95;
-  --muted: #ece8f7;
-  --muted-foreground: #645d82;
+  --muted: #f3ecfa;
+  --muted-foreground: #6e5f8a;
   --accent: #ec4899;
   --accent-foreground: #ffffff;
 
@@ -75,37 +76,45 @@
   --success-foreground: #ffffff;
   --warning: #d97706;
 
-  --border: #e3dcf6;
-  --input: #ddd5f3;
+  --border: #eadff8;
+  --input: #e2d6f5;
   --ring: #7c3aed;
 
   /* Brand gradients (shared by both themes) */
-  --grad-primary: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 45%, #c026d3 100%);
+  --grad-primary: linear-gradient(135deg, #8b5cf6 0%, #b04ae8 55%, #f472b6 100%);
   --grad-danger: linear-gradient(145deg, #ff6b6b 0%, #f43f5e 45%, #be123c 100%);
   --grad-success: linear-gradient(135deg, #34d399 0%, #059669 100%);
   --grad-warm: linear-gradient(135deg, #fb923c 0%, #ec4899 100%);
   --grad-sky: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
 
-  --shadow-card: 0 1px 2px rgb(25 18 58 / 0.04), 0 8px 24px -12px rgb(76 29 149 / 0.18);
-  --shadow-glow: 0 14px 40px -12px rgb(124 58 237 / 0.55);
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.9) inset, 0 12px 36px -16px rgb(139 92 246 / 0.32);
+  --shadow-glow: 0 16px 44px -12px rgb(168 85 247 / 0.55);
+
+  /* Pastel mesh used behind every screen */
+  --mesh-1: #e6d8ff;
+  --mesh-2: #ffd9e8;
+  --mesh-3: #ffe7d3;
+  --mesh-4: #d9eaff;
+  --glass: rgb(255 255 255 / 0.74);
+  --glass-border: rgb(255 255 255 / 0.85);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #09061f;
-  --foreground: #f4f1ff;
-  --card: #141032;
-  --card-foreground: #f4f1ff;
-  --popover: #141032;
+  --background: #0d0820;
+  --foreground: #f6f1ff;
+  --card: #17102f;
+  --card-foreground: #f6f1ff;
+  --popover: #17102f;
   --popover-foreground: #f4f1ff;
 
   --primary: #a78bfa;
   --primary-foreground: #12082e;
-  --secondary: #231a4d;
+  --secondary: #261b50;
   --secondary-foreground: #ddd6fe;
-  --muted: #1d1644;
-  --muted-foreground: #a59fc8;
+  --muted: #1f1741;
+  --muted-foreground: #a99fcb;
   --accent: #f472b6;
   --accent-foreground: #1a0a24;
 
@@ -117,12 +126,19 @@
   --success-foreground: #04261b;
   --warning: #fbbf24;
 
-  --border: #2a2259;
-  --input: #2a2259;
+  --border: #2c2360;
+  --input: #2c2360;
   --ring: #a78bfa;
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -14px rgb(0 0 0 / 0.7);
-  --shadow-glow: 0 14px 44px -12px rgb(139 92 246 / 0.5);
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 14px 40px -18px rgb(0 0 0 / 0.75);
+  --shadow-glow: 0 16px 48px -12px rgb(168 85 247 / 0.5);
+
+  --mesh-1: rgb(109 40 217 / 0.42);
+  --mesh-2: rgb(190 24 93 / 0.28);
+  --mesh-3: rgb(99 102 241 / 0.22);
+  --mesh-4: rgb(14 116 144 / 0.2);
+  --glass: rgb(255 255 255 / 0.065);
+  --glass-border: rgb(255 255 255 / 0.1);
 }
 
 @layer base {
@@ -168,12 +184,23 @@
 /* Reusable surfaces                                                    */
 /* ------------------------------------------------------------------ */
 @layer components {
-  /* Page background with soft colour glows (cheap radial gradients, no blur filters). */
+  /* Pastel mesh behind every screen. A fixed pseudo-element keeps scrolling smooth on Android. */
   .bg-aurora {
+    position: relative;
+    isolation: isolate;
+    background: var(--background);
+  }
+  .bg-aurora::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background:
-      radial-gradient(70% 38% at 88% -6%, color-mix(in oklab, var(--primary) 26%, transparent), transparent 72%),
-      radial-gradient(55% 30% at -8% 14%, color-mix(in oklab, var(--accent) 17%, transparent), transparent 72%),
-      var(--background);
+      radial-gradient(60% 38% at 100% 0%, var(--mesh-1), transparent 72%),
+      radial-gradient(52% 34% at 0% 14%, var(--mesh-2), transparent 72%),
+      radial-gradient(60% 36% at 100% 58%, var(--mesh-3), transparent 74%),
+      radial-gradient(64% 40% at 0% 100%, var(--mesh-4), transparent 74%);
   }
   .bg-aurora-danger {
     background:
@@ -182,15 +209,17 @@
       #0b0510;
   }
 
-  /* Glass-like surface for cards and sheets. */
+  /* Frosted glass for cards and sheets. */
   .surface {
-    background: color-mix(in oklab, var(--card) 88%, transparent);
-    border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+    backdrop-filter: blur(10px) saturate(1.15);
+    border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-card);
   }
   .surface-raised {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, white);
     box-shadow: var(--shadow-card);
   }
 

@@ -87,6 +87,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): environment, Docker, HTTPS, health
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint` | ESLint |
 | `npm run db:init` / `db:inspect` / `db:backup` | Create/migrate, inspect and back up the SQLite DB |
+| `npm run test:ocr` | Unit tests for scanner field extraction (blood group, name, phone, ID) |
 | `npm run test:insights` | Unit tests for the recommender and battery regression (Node 22.6+) |
 | `npm run test:api` | End-to-end API tests: auth, per-user isolation, SOS lifecycle, power trigger, pagination, limits (needs the Auth Emulator) |
 | `npx cap sync android` | Sync Capacitor config/plugins into `android/` |

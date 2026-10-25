@@ -12,7 +12,8 @@
     "test:api": "node scripts/test-api.mjs",
     "cap:sync": "cap sync android",
     "db:backup": "node scripts/db-backup.js",
-    "test:insights": "node --experimental-strip-types scripts/test-insights.mjs"
+    "test:insights": "node --experimental-strip-types scripts/test-insights.mjs",
+    "test:ocr": "node --experimental-strip-types scripts/test-ocr-parse.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

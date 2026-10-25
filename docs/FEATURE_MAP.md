@@ -31,21 +31,21 @@ Architecture rules that shape these choices: Firebase is used for sign-in only, 
 | Upload | `app/api/media` (photo / audio / video, magic-byte checks, 8 MB limit, per-user isolation) | Verified: tests, plus a real video recorded on the emulator and uploaded |
 | Download | Evidence page: browser download, or Android share sheet (`lib/media.ts#downloadMedia`); cached copies purged on next download and on logout | Verified: share sheet opened with the real MP4 |
 | Camera / gallery | `@capacitor/camera` for photos; system file chooser for video | Camera video verified on emulator; gallery pickers use the same code paths (not separately exercised) |
-| Audio | `lib/hooks/use-audio-recorder.ts` | Implemented, not verified on this run |
+| Audio | `lib/hooks/use-audio-recorder.ts` | Implemented. **Not verified**: browsers and WebViews only expose the microphone on HTTPS, and the test server was plain HTTP. Verify it once on your HTTPS deployment |
 | Video | Record or choose a clip, preview, upload, play back, download | Verified (record, upload; playback in the preview) |
 | GPS | `lib/location.ts`, real fixes only | Verified in earlier sessions |
 | Maps | Leaflet + OpenStreetMap (chosen in the original brief), not the Google Maps SDK | n/a |
-| Campus / route navigation | `app/navigate`: OSRM walking route, nearby police / hospital / pharmacy via Overpass | Implemented by an earlier session; not re-verified on this run |
+| Campus / route navigation | `app/navigate`: place search (Nominatim), OSRM walking route with turn-by-turn steps, **Open in Maps** (Google Maps walking-directions link), nearby police / hospital / pharmacy (Overpass, with mirror fallback) | Verified on emulator: search, a 2.5 km route with 15 steps, live GPS marker. Nearby search showed its error message correctly while the public Overpass server was down (HTTP 502); it succeeding was not seen |
 
 ## Task 4: AI
 
 | Item | Where | Status |
 |---|---|---|
-| Chatbot | `app/assistant` + `app/api/assistant` (Gemini through a server proxy; key stays on the server). Without a key it answers 503 and the app shows a clearly labelled fixed-text guide (`lib/offline-guide.ts`) | Auth, rate limit and the not-configured path verified. **The live Gemini path was not tested: no API key is configured here** |
+| Chatbot | `app/assistant` + `app/api/assistant` (Gemini through a server proxy; key stays on the server). Without a key it answers 503 and the app shows a clearly labelled fixed-text guide (`lib/offline-guide.ts`) | Verified live with a real key: normal answers in 2 to 4 s, and an emergency message returns the emergency numbers first with `urgent: true`. Auth, rate limit and the not-configured path are covered by tests |
 | Image classification | `ImageClassifierPlugin.kt`: ML Kit Image Labeling (bundled model, on-device), used in the Scanner | Verified on emulator with real photos; invalid images are rejected. Labels are general and can be wrong |
-| Text recognition | `TextScannerPlugin.kt` (ML Kit OCR) | Implemented by an earlier session; not re-verified here |
+| Text recognition | `TextScannerPlugin.kt` (ML Kit OCR) + `lib/emergency-info.ts` (field extraction) | Verified: on a rendered test card the model read all 6 lines in 228 ms. Testing the extractor on that real output found two bugs (blood group and name came back empty); both fixed, and 28 unit tests now cover it |
 | Recommendation | `lib/insights.ts#recommendTips`: content-based, cosine similarity between the user's real state and tip topics | Verified: 11 unit tests, and on the device with real account data |
 | Prediction | `lib/insights.ts#fitBatteryDrain`: least-squares linear regression on real battery readings | Verified: 12 unit tests; the page shows "collecting data" until there are enough readings |
-| Smart alerts / notifications | Battery-forecast notification (`SmartAlertPlugin.kt`, opt-in, only while the app is open); fall check-in (`MotionAnomalyDetector.kt`, rule-based, asks "are you OK?") | Battery alert verified on the emulator using an injected test history; the fall detector was not exercised |
+| Smart alerts / notifications | Battery-forecast notification (`SmartAlertPlugin.kt`, opt-in, only while the app is open); fall check-in (`MotionAnomalyDetector.kt`, rule-based, asks "are you OK?") | Both verified on the emulator. Battery alert used an injected test history. Fall check-in: simulated accelerometer free-fall, impact and stillness produced the "Are you OK?" notification with the measured values, and "Get help" opened the emergency screen with a `motion` SOS and real GPS. The "I'm OK" answer was not separately exercised |
 
 These are classic statistical methods and a bundled pretrained model. Nothing here is trained on user data, and the UI labels each method for what it is.

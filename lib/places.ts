@@ -173,6 +173,15 @@ export async function searchPlaces(query: string, near?: LatLng): Promise<Place[
 
 // ---------------------------------------------------------------------------- nearby
 
+/** Overridable with NEXT_PUBLIC_OVERPASS_URL (comma-separated) to point at your own Overpass instance. */
+const OVERPASS_ENDPOINTS = (
+  process.env.NEXT_PUBLIC_OVERPASS_URL ||
+  'https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter'
+)
+  .split(',')
+  .map((u) => u.trim())
+  .filter(Boolean)
+
 export type NearbyKind = 'police' | 'hospital' | 'pharmacy'
 
 const OVERPASS_FILTER: Record<NearbyKind, string> = {
@@ -192,11 +201,22 @@ interface OverpassElement {
 export async function findNearby(kind: NearbyKind, origin: LatLng, radiusMeters = 4000): Promise<Place[]> {
   const f = OVERPASS_FILTER[kind]
   const query = `[out:json][timeout:15];(node${f}(around:${radiusMeters},${origin.lat},${origin.lng});way${f}(around:${radiusMeters},${origin.lat},${origin.lng}););out center 25;`
-  const data = await getJson<{ elements: OverpassElement[] }>('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-  })
+  // Public Overpass servers go down or rate-limit regularly: try each in turn and only fail if all do.
+  let data: { elements: OverpassElement[] } | null = null
+  let lastError: unknown = null
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      data = await getJson<{ elements: OverpassElement[] }>(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `data=${encodeURIComponent(query)}`,
+      })
+      break
+    } catch (error) {
+      lastError = error
+    }
+  }
+  if (!data) throw lastError instanceof Error ? lastError : new PlacesError('Could not reach the map service.', true)
   const places: Place[] = []
   for (const el of data.elements) {
     const lat = el.lat ?? el.center?.lat

@@ -149,6 +149,39 @@ export async function uploadMedia(kind: MediaKind, blob: Blob, sosEventId?: stri
 
 export const listMedia = () => apiJson<MediaItem[]>('/api/media')
 
+// ------------------------------------------------------------------------------- share links
+
+export interface ShareInfo {
+  created_at: string
+  expires_at: string
+}
+
+export const listShares = (mediaId: string) => apiJson<ShareInfo[]>(`/api/media/share?media_id=${encodeURIComponent(mediaId)}`)
+
+export const stopSharing = (mediaId: string) => apiJson(`/api/media/share?media_id=${encodeURIComponent(mediaId)}`, { method: 'DELETE' })
+
+/** Creates an expiring link to one item. The full URL is returned once; the server keeps only a hash. */
+export async function createShareLink(mediaId: string, hours: number): Promise<{ url: string; expires_at: string }> {
+  const data = await apiJson<{ path: string; expires_at: string }>('/api/media/share', {
+    method: 'POST',
+    body: JSON.stringify({ media_id: mediaId, hours }),
+  })
+  const configured = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '')
+  const { protocol, hostname, origin } = window.location
+  const bundled = isNativeApp() && (protocol === 'capacitor:' || hostname === 'localhost')
+  return { url: `${bundled && configured ? configured : origin}${data.path}`, expires_at: data.expires_at }
+}
+
+/** Opens the system share sheet (or copies the link in a browser). Returns what happened. */
+export async function shareLink(url: string): Promise<'shared' | 'copied'> {
+  if (isNativeApp()) {
+    await Share.share({ title: 'SafeHer evidence', text: 'I am sharing this with you through SafeHer. The link expires automatically:', url, dialogTitle: 'Send this link' })
+    return 'shared'
+  }
+  await navigator.clipboard.writeText(url)
+  return 'copied'
+}
+
 export async function fetchMediaBlob(id: string): Promise<Blob> {
   const response = await apiFetch(`/api/media?id=${encodeURIComponent(id)}`)
   if (!response.ok) throw new ApiError(response.status, 'Could not load this item.')

@@ -30,6 +30,7 @@ Architecture rules that shape these choices: Firebase is used for sign-in only, 
 | REST API | `app/api/*`, all authenticated with a verified Firebase ID token | Verified (tests) |
 | Upload | `app/api/media` (photo / audio / video, magic-byte checks, 8 MB limit, per-user isolation) | Verified: tests, plus a real video recorded on the emulator and uploaded |
 | Download | Evidence page: browser download, or Android share sheet (`lib/media.ts#downloadMedia`); cached copies purged on next download and on logout | Verified: share sheet opened with the real MP4 |
+| Share link | Evidence page, link icon: owner makes an expiring (1 h / 24 h / 7 d), revocable link to ONE item; anyone with it can view without signing in at `/shared/<token>` (`app/api/media/share`, `app/api/shared/[token]`). 256-bit token, only its SHA-256 stored; expired/revoked/deleted all return the same 404 | Verified by 15 API tests (isolation, revoke, expiry, deletion) and the public page in a browser; the in-app Share button on a phone not yet tried |
 | Camera / gallery | `@capacitor/camera` for photos; system file chooser for video | Camera video verified on emulator; gallery pickers use the same code paths (not separately exercised) |
 | Audio | `lib/hooks/use-audio-recorder.ts` | Implemented. **Not verified**: browsers and WebViews only expose the microphone on HTTPS, and the test server was plain HTTP. Verify it once on your HTTPS deployment |
 | Video | Record or choose a clip, preview, upload, play back, download | Verified (record, upload; playback in the preview) |

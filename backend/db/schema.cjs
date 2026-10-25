@@ -125,6 +125,18 @@ const BASE_SCHEMA = `
     created_at TEXT NOT NULL,
     FOREIGN KEY (firebase_uid) REFERENCES users(firebase_uid) ON DELETE CASCADE
   );
+
+  -- Expiring, revocable links the owner creates to show one evidence item to someone else.
+  -- Only a SHA-256 hash of the secret token is stored; the token itself exists only in the link.
+  CREATE TABLE IF NOT EXISTS media_shares (
+    token_hash TEXT PRIMARY KEY,
+    media_id TEXT NOT NULL,
+    firebase_uid TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY (media_id) REFERENCES media_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (firebase_uid) REFERENCES users(firebase_uid) ON DELETE CASCADE
+  );
 `
 
 const INDEXES = `
@@ -185,6 +197,7 @@ function migrate(db) {
   }
 
   db.exec(INDEXES)
+  db.exec('CREATE INDEX IF NOT EXISTS idx_shares_media ON media_shares(media_id)')
   db.exec('CREATE INDEX IF NOT EXISTS idx_media_uid ON media_items(firebase_uid, created_at DESC)')
 }
 

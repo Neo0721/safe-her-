@@ -1,9 +1,9 @@
 import fs from 'fs'
-import path from 'path'
 import { NextResponse } from 'next/server'
 import db from '@/backend/db/database'
 import { getVerifiedUid } from '@/backend/auth/verify-token'
 import { apiError, serverError } from '@/backend/http'
+import { mediaFile } from '@/backend/media-files'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,23 +29,6 @@ const MIME: Record<Kind, Record<string, string>> = {
   photo: { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' },
   audio: { 'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/aac': 'aac' },
   video: { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/3gpp': '3gp', 'video/quicktime': 'mov' },
-}
-
-function mediaDir() {
-  const dir = process.env.SAFEHER_MEDIA_DIR
-    ? path.resolve(process.env.SAFEHER_MEDIA_DIR)
-    : path.join(process.cwd(), 'data', 'media')
-  fs.mkdirSync(dir, { recursive: true })
-  return dir
-}
-
-/**
- * Absolute path of a stored file. `fileName` is always a server-generated UUID plus a fixed
- * extension from the allow-list, never client input, so the dynamic path is safe; the annotation
- * stops the bundler from tracing the whole project because of it.
- */
-function mediaFile(fileName: string) {
-  return path.join(/* turbopackIgnore: true */ mediaDir(), fileName)
 }
 
 /** Cheap content sniffing so a mislabelled upload (e.g. HTML sent as image/png) is rejected. */

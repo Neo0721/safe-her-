@@ -1,6 +1,6 @@
 'use client'
 
-import { Camera as CameraIcon, CheckCircle2, Download, Image as ImageIcon, Loader2, Mic, Play, Square, Trash2, UploadCloud, Video, X } from 'lucide-react'
+import { Camera as CameraIcon, CheckCircle2, Copy, Download, Link2, Send, Image as ImageIcon, Loader2, Mic, Play, Square, Trash2, UploadCloud, Video, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AppShell } from '@/components/app-shell'
@@ -10,7 +10,11 @@ import { errorMessage } from '@/lib/api-fetch'
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder'
 import {
   PhotoError,
+  createShareLink,
   deleteMedia,
+  listShares,
+  shareLink,
+  stopSharing,
   downloadMedia,
   fetchMediaBlob,
   formatBytes,
@@ -20,7 +24,9 @@ import {
   listMedia,
   uploadMedia,
   type MediaItem,
+  type ShareInfo,
 } from '@/lib/media'
+import { isNativeApp } from '@/lib/platform'
 import { cn } from '@/lib/utils'
 
 function clock(total: number) {
@@ -46,6 +52,63 @@ export default function EvidencePage() {
   const [loadingList, setLoadingList] = useState(true)
   const [preview, setPreview] = useState<{ id: string; url: string; kind: 'photo' | 'audio' | 'video' } | null>(null)
   const [previewing, setPreviewing] = useState<string | null>(null)
+  const [sharing, setSharing] = useState<string | null>(null)
+  const [shareHours, setShareHours] = useState(24)
+  const [activeShares, setActiveShares] = useState<ShareInfo[]>([])
+  const [newLink, setNewLink] = useState<{ url: string; expires_at: string } | null>(null)
+  const [shareBusy, setShareBusy] = useState(false)
+
+  const openShare = async (item: MediaItem) => {
+    if (sharing === item.id) {
+      setSharing(null)
+      return
+    }
+    setSharing(item.id)
+    setNewLink(null)
+    setActiveShares([])
+    try {
+      setActiveShares(await listShares(item.id))
+    } catch (error) {
+      toast.error(errorMessage(error))
+    }
+  }
+
+  const makeLink = async (item: MediaItem) => {
+    setShareBusy(true)
+    try {
+      const link = await createShareLink(item.id, shareHours)
+      setNewLink(link)
+      setActiveShares(await listShares(item.id))
+    } catch (error) {
+      toast.error(`Could not create a link: ${errorMessage(error)}`)
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
+  const sendLink = async () => {
+    if (!newLink) return
+    try {
+      const outcome = await shareLink(newLink.url)
+      if (outcome === 'copied') toast.success('Link copied.')
+    } catch (error) {
+      if (!/cancel|abort/i.test(errorMessage(error))) toast.error(`Could not share: ${errorMessage(error)}`)
+    }
+  }
+
+  const endSharing = async (item: MediaItem) => {
+    setShareBusy(true)
+    try {
+      await stopSharing(item.id)
+      setActiveShares([])
+      setNewLink(null)
+      toast.success('Sharing stopped. Old links no longer work.')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setShareBusy(false)
+    }
+  }
 
   const refresh = useCallback(async () => {
     setListError(null)
@@ -351,6 +414,15 @@ export default function EvidencePage() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => void openShare(item)}
+                        aria-label={`Share ${item.kind}`}
+                        aria-expanded={sharing === item.id}
+                        className="flex size-11 items-center justify-center rounded-xl text-primary active:bg-primary/10"
+                      >
+                        <Link2 className="size-5" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void save(item)}
                         disabled={downloading === item.id}
                         aria-label={`Download ${item.kind}`}
@@ -362,6 +434,47 @@ export default function EvidencePage() {
                         <Trash2 className="size-5" />
                       </button>
                     </div>
+                    {sharing === item.id && (
+                      <div className="mt-3 space-y-3 rounded-2xl bg-muted/50 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Creates a link to <strong>this one item</strong>. Anyone who has the link can view it until it expires, without signing in. You can stop sharing at any time.
+                        </p>
+                        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Link lasts">
+                          {[{ h: 1, l: '1 hour' }, { h: 24, l: '24 hours' }, { h: 168, l: '7 days' }].map((o) => (
+                            <button
+                              key={o.h}
+                              type="button"
+                              role="radio"
+                              aria-checked={shareHours === o.h}
+                              onClick={() => setShareHours(o.h)}
+                              className={cn('min-h-11 rounded-xl text-xs font-semibold', shareHours === o.h ? 'gradient-primary' : 'surface-raised')}
+                            >
+                              {o.l}
+                            </button>
+                          ))}
+                        </div>
+                        <button type="button" disabled={shareBusy} onClick={() => void makeLink(item)} className="gradient-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold disabled:opacity-60">
+                          {shareBusy ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />} Create link
+                        </button>
+                        {newLink && (
+                          <div className="space-y-2">
+                            <p className="break-all rounded-xl bg-background p-2 text-xs">{newLink.url}</p>
+                            <p className="text-xs text-muted-foreground">Works until {new Date(newLink.expires_at).toLocaleString()}</p>
+                            <button type="button" onClick={() => void sendLink()} className="gradient-success flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold">
+                              {isNativeApp() ? <Send className="size-4" /> : <Copy className="size-4" />} {isNativeApp() ? 'Send link' : 'Copy link'}
+                            </button>
+                          </div>
+                        )}
+                        {activeShares.length > 0 && (
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="text-muted-foreground">{activeShares.length} active link{activeShares.length === 1 ? '' : 's'}</span>
+                            <button type="button" disabled={shareBusy} onClick={() => void endSharing(item)} className="font-semibold text-danger underline">
+                              Stop sharing
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {preview?.id === item.id &&
                       (preview.kind === 'photo' ? (
                         // eslint-disable-next-line @next/next/no-img-element

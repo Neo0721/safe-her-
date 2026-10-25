@@ -11,17 +11,20 @@ export interface TriggerStatus {
   fullScreenAllowed: boolean
   /** True when SafeHer may open itself instantly from the background ("display over other apps"). */
   overlayAllowed: boolean
+  motionEnabled: boolean
+  motionSensorAvailable: boolean
 }
 
 interface SosTriggerNative {
   start(options: { presses: number; windowMs?: number }): Promise<TriggerStatus>
   stop(): Promise<TriggerStatus>
+  setMotionDetection(options: { enabled: boolean }): Promise<TriggerStatus>
   status(): Promise<TriggerStatus>
   requestNotificationPermission(): Promise<{ granted: boolean }>
   openBatterySettings(): Promise<void>
   openFullScreenSettings(): Promise<void>
   openOverlaySettings(): Promise<void>
-  addListener(event: 'sosTriggered', handler: (data: { source: string; at: number }) => void): Promise<PluginListenerHandle>
+  addListener(event: 'sosTriggered', handler: (data: { source?: string; at: number }) => void): Promise<PluginListenerHandle>
 }
 
 const native = registerPlugin<SosTriggerNative>('SosTrigger')
@@ -65,14 +68,22 @@ export const powerTrigger = {
     }
   },
 
+  async setMotionDetection(enabled: boolean): Promise<void> {
+    if (!isNativeApp()) return
+    if (enabled && !(await powerTrigger.ensurePermission())) {
+      throw new Error('Allow notifications so SafeHer can ask if you are OK after a fall.')
+    }
+    await native.setMotionDetection({ enabled })
+  },
+
   openBatterySettings: () => (isNativeApp() ? native.openBatterySettings() : Promise.resolve()),
   openFullScreenSettings: () => (isNativeApp() ? native.openFullScreenSettings() : Promise.resolve()),
   openOverlaySettings: () => (isNativeApp() ? native.openOverlaySettings() : Promise.resolve()),
 
   /** Fires when the service launched the app after N rapid power-button presses (also replays one missed while closed). */
-  async onTriggered(handler: () => void): Promise<() => void> {
+  async onTriggered(handler: (data: { source?: string }) => void): Promise<() => void> {
     if (!isNativeApp()) return () => {}
-    const handle = await native.addListener('sosTriggered', () => handler())
+    const handle = await native.addListener('sosTriggered', (data) => handler(data))
     return () => void handle.remove()
   },
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Info, MapPin, Mic, PhoneCall, type LucideIcon } from 'lucide-react'
+import { Camera as CameraIcon, Check, Info, MapPin, Mic, PhoneCall, type LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -13,6 +13,7 @@ export default function PermissionsPage() {
   const router = useRouter()
   const [location, setLocation] = useState<PermissionState | 'checking'>('checking')
   const [microphone, setMicrophone] = useState<'unknown' | 'granted' | 'denied' | 'unsupported'>('unknown')
+  const [camera, setCamera] = useState<'unknown' | 'granted' | 'denied' | 'unsupported'>('unknown')
 
   const refresh = useCallback(async () => {
     setLocation(await getLocationPermission())
@@ -23,6 +24,13 @@ export default function PermissionsPage() {
         else if (status.state === 'denied') setMicrophone('denied')
       } catch {
         /* permission name not supported: stays unknown */
+      }
+      try {
+        const status = await navigator.permissions.query({ name: 'camera' as PermissionName })
+        if (status.state === 'granted') setCamera('granted')
+        else if (status.state === 'denied') setCamera('denied')
+      } catch {
+        /* stays unknown */
       }
     }
   }, [])
@@ -55,6 +63,23 @@ export default function PermissionsPage() {
     }
   }
 
+  const allowCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCamera('unsupported')
+      toast.error('Camera access is not available here (the page must be served over HTTPS).')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      stream.getTracks().forEach((t) => t.stop())
+      setCamera('granted')
+      toast.success('Camera access allowed')
+    } catch {
+      setCamera('denied')
+      toast.error('Camera access was not granted.')
+    }
+  }
+
   const locationGranted = location === 'granted'
 
   return (
@@ -82,10 +107,19 @@ export default function PermissionsPage() {
         <PermissionCard
           icon={Mic}
           title="Microphone (optional)"
-          description="Only used if you turn on “Record audio” in SOS settings."
+          description="Only used if you turn on “Record audio” in SOS settings or record evidence."
           state={microphone === 'granted' ? 'granted' : microphone === 'denied' ? 'denied' : microphone === 'unsupported' ? 'unsupported' : 'prompt'}
           onAllow={allowMicrophone}
           deniedHint="Blocked. Allow the microphone for SafeHer in your phone settings."
+        />
+
+        <PermissionCard
+          icon={CameraIcon}
+          title="Camera (optional)"
+          description="Used by Evidence photos and the offline card scanner. Only active when you choose to take a photo."
+          state={camera === 'granted' ? 'granted' : camera === 'denied' ? 'denied' : camera === 'unsupported' ? 'unsupported' : 'prompt'}
+          onAllow={allowCamera}
+          deniedHint="Blocked. Allow the camera for SafeHer in your phone settings."
         />
 
         <div className="surface flex items-start gap-3 rounded-3xl p-4">

@@ -12,6 +12,10 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SosTriggerPlugin.class);
+        registerPlugin(TextScannerPlugin.class);
+        registerPlugin(ImageClassifierPlugin.class);
+        registerPlugin(LocalStorePlugin.class);
+        registerPlugin(SmartAlertPlugin.class);
         super.onCreate(savedInstanceState);
         handleTriggerIntent(getIntent());
     }
@@ -30,13 +34,18 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void handleTriggerIntent(Intent intent) {
-        if (intent == null || !PowerTriggerService.ACTION_SOS.equals(intent.getAction())) return;
+        if (intent == null || intent.getAction() == null) return;
+        String action = intent.getAction();
+        String source;
+        if (PowerTriggerService.ACTION_SOS.equals(action)) source = "power";
+        else if (PowerTriggerService.ACTION_MOTION.equals(action)) source = "motion";
+        else return;
         intent.setAction(Intent.ACTION_MAIN); // handle each trigger exactly once (e.g. not again after rotation)
         setLockScreenVisibility(true);
 
         PluginHandle handle = getBridge() != null ? getBridge().getPlugin("SosTrigger") : null;
         if (handle != null && handle.getInstance() instanceof SosTriggerPlugin) {
-            ((SosTriggerPlugin) handle.getInstance()).dispatchTrigger();
+            ((SosTriggerPlugin) handle.getInstance()).dispatchTrigger(source);
         }
     }
 

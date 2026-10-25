@@ -13,6 +13,9 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { auth, googleProvider } from '@/lib/firebase/client'
 import { ApiError, apiJson } from '@/lib/api-fetch'
 import { isNativeApp } from '@/lib/platform'
+import { clearBatteryLog } from '@/lib/battery-log'
+import { purgeSharedCache } from '@/lib/media'
+import { localStore } from '@/lib/native/local-store'
 import { powerTrigger } from '@/lib/native/sos-trigger'
 
 export interface Profile {
@@ -99,6 +102,10 @@ export async function sendResetEmail(email: string) {
 export async function logOut() {
   // A signed-out phone must not keep a background SOS listener running for the previous user.
   await powerTrigger.stop()
+  // The next person to use this phone must not see this person's contacts or battery history.
+  await localStore.clear()
+  clearBatteryLog()
+  await purgeSharedCache()
   if (isNativeApp()) {
     try {
       await FirebaseAuthentication.signOut()

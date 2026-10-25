@@ -7,11 +7,15 @@ import {
   History,
   MapPin,
   Navigation,
-  Settings2,
+  Sparkles,
   ShieldCheck,
   Signal,
   Users,
   Zap,
+  Navigation as NavIcon,
+  Bot,
+  Camera as CamIcon,
+  ScanText,
   type LucideIcon,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -37,9 +41,13 @@ import type { ActivityLog, Contact, SosSettings } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 
 const quickActions = [
+  { label: 'Safe route', hint: 'Walking directions', icon: NavIcon, href: '/navigate', chip: 'gradient-sky', tile: 'bg-sky-100/80 dark:bg-sky-400/10' },
+  { label: 'Safety AI', hint: 'Guidance & plans', icon: Bot, href: '/assistant', chip: 'gradient-primary', tile: 'bg-violet-100/80 dark:bg-violet-400/10' },
+  { label: 'Card scanner', hint: 'On-device OCR', icon: ScanText, href: '/scanner', chip: 'gradient-warm', tile: 'bg-amber-100/80 dark:bg-amber-400/10' },
+  { label: 'Evidence', hint: 'Photos & audio', icon: CamIcon, href: '/evidence', chip: 'gradient-success', tile: 'bg-emerald-100/80 dark:bg-emerald-400/10' },
   { label: 'Live location', hint: 'Track on the map', icon: MapPin, href: '/tracking', chip: 'gradient-sky', tile: 'bg-sky-100/80 dark:bg-sky-400/10' },
   { label: 'My circle', hint: 'Trusted contacts', icon: Users, href: '/contacts', chip: 'gradient-primary', tile: 'bg-violet-100/80 dark:bg-violet-400/10' },
-  { label: 'SOS settings', hint: 'Triggers & timing', icon: Settings2, href: '/sos-settings', chip: 'gradient-warm', tile: 'bg-orange-100/80 dark:bg-orange-400/10' },
+  { label: 'Insights', hint: 'Tips & battery forecast', icon: Sparkles, href: '/insights', chip: 'gradient-warm', tile: 'bg-orange-100/80 dark:bg-orange-400/10' },
   { label: 'History', hint: 'Past SOS & drills', icon: History, href: '/history', chip: 'gradient-success', tile: 'bg-emerald-100/80 dark:bg-emerald-400/10' },
 ] as const
 

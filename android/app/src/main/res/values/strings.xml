@@ -4,4 +4,25 @@
     <string name="title_activity_main">SafeHer</string>
     <string name="package_name">com.safeher.app</string>
     <string name="custom_url_scheme">com.safeher.app</string>
+    <string name="title_emergency_card">Emergency card</string>
+    <string name="card_blood">Blood group: %1$s</string>
+    <string name="card_phone">Phone: %1$s</string>
+    <string name="card_unknown">No profile on this phone yet</string>
+    <string name="card_not_set">not set</string>
+    <string name="card_synced">Last synced %1$s</string>
+    <string name="card_never_synced">Not synced yet. Open SafeHer while online to save your details here.</string>
+    <string name="card_no_data">Nothing is saved on this phone yet. Open SafeHer while online and your contacts will be copied here.</string>
+    <string name="card_no_contacts">You have no emergency contacts yet.</string>
+    <string name="card_contacts_heading">Emergency contacts</string>
+    <string name="card_call">Call</string>
+    <string name="card_call_112">Open dialer for 112</string>
+    <string name="card_note_label">Medical note (stays on this phone only)</string>
+    <string name="card_note_hint">Allergies, medication, anything a helper should know</string>
+    <string name="card_note_save">Save note</string>
+    <string name="card_note_saved">Note saved on this phone</string>
+    <string name="card_open_app">Open SafeHer</string>
+    <string name="card_close">Close</string>
+    <string name="card_no_dialer">No phone app was found to place the call.</string>
+    <string name="card_footnote">Buttons open your dialer with the number filled in. You press call yourself.</string>
+    <string name="shortcut_card_short">Emergency card</string>
 </resources>

@@ -247,6 +247,57 @@ async function main() {
   check('security headers present', health.headers.get('x-content-type-options') === 'nosniff' && health.headers.get('cache-control') === 'no-store')
   check('X-Powered-By is hidden', !health.headers.get('x-powered-by'))
 
+  console.log('\n[14] Motion check-in setting, evidence media and assistant')
+  check('motion detection is off by default', (await call(B.token, 'GET', '/api/settings')).json?.motion_detection === 0)
+  const md = await call(A.token, 'PUT', '/api/settings', { motion_detection: true })
+  check('motion detection saved', md.json?.motion_detection === 1 && md.json?.power_trigger === 1)
+  check('non-boolean motion flag rejected', (await call(A.token, 'PUT', '/api/settings', { motion_detection: 'maybe' })).status === 400)
+  check('motion setting is per user', (await call(B.token, 'GET', '/api/settings')).json?.motion_detection === 0)
+  const motionId = `sos-${stamp}-motion`
+  const mo = await call(A.token, 'POST', '/api/sos', { id: motionId, source: 'motion' })
+  check('SOS records the motion check-in source', mo.status === 201 && mo.json?.trigger_source === 'motion')
+  await call(A.token, 'PUT', '/api/sos', { id: motionId, status: 'Cancelled' })
+
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32, 1)])
+  const upload = (token, kind, type, body, extra = '') =>
+    fetch(`${BASE}/api/media?kind=${kind}${extra}`, { method: 'POST', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': type }, body })
+  check('media upload requires a token', (await upload(null, 'photo', 'image/png', png)).status === 401)
+  const up = await upload(A.token, 'photo', 'image/png', png)
+  const upJson = await up.json()
+  check('valid photo is stored', up.status === 201 && upJson.kind === 'photo', JSON.stringify(upJson))
+  check('mislabelled upload (text as PNG) rejected', (await upload(A.token, 'photo', 'image/png', Buffer.from('<html>not an image at all</html>'))).status === 400)
+  check('unsupported media type rejected', (await upload(A.token, 'photo', 'text/html', png)).status === 415)
+  check('unknown kind rejected', (await upload(A.token, 'hologram', 'image/png', png)).status === 400)
+  const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from('ftypisom', 'ascii'), Buffer.alloc(40, 2)])
+  const vid = await upload(A.token, 'video', 'video/mp4', mp4)
+  const vidJson = await vid.json()
+  check('valid video is stored', vid.status === 201 && vidJson.kind === 'video', JSON.stringify(vidJson))
+  check('mislabelled video (text as MP4) rejected', (await upload(A.token, 'video', 'video/mp4', Buffer.from('this is definitely not a video file'))).status === 400)
+  check('photo bytes labelled as video rejected', (await upload(A.token, 'video', 'video/mp4', png)).status === 400)
+  check('unsupported video type rejected', (await upload(A.token, 'video', 'video/x-msvideo', mp4)).status === 415)
+  check('video bytes round-trip exactly', Buffer.from(await (await fetch(`${BASE}/api/media?id=${vidJson.id}`, { headers: { Authorization: `Bearer ${A.token}` } })).arrayBuffer()).equals(mp4))
+  check('other user cannot download my video', (await fetch(`${BASE}/api/media?id=${vidJson.id}`, { headers: { Authorization: `Bearer ${B.token}` } })).status === 404)
+  check('owner can delete the video', (await fetch(`${BASE}/api/media?id=${vidJson.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${A.token}` } })).status === 200)
+  const oversize = await upload(A.token, 'video', 'video/mp4', Buffer.concat([mp4, Buffer.alloc(8 * 1024 * 1024)]))
+  check('video over 8 MB rejected', oversize.status === 413 || oversize.status === 400, String(oversize.status))
+  check('another user cannot attach media to my SOS', (await upload(B.token, 'photo', 'image/png', png, `&sos_event_id=${motionId}`)).status === 404)
+  check('owner sees the item in their list', (await call(A.token, 'GET', '/api/media')).json?.some((m) => m.id === upJson.id))
+  check('other user does not see it', !(await call(B.token, 'GET', '/api/media')).json?.some((m) => m.id === upJson.id))
+  const dl = await fetch(`${BASE}/api/media?id=${upJson.id}`, { headers: { Authorization: `Bearer ${A.token}` } })
+  check('owner can download the exact bytes', dl.status === 200 && Buffer.from(await dl.arrayBuffer()).equals(png))
+  check('other user cannot download it', (await fetch(`${BASE}/api/media?id=${upJson.id}`, { headers: { Authorization: `Bearer ${B.token}` } })).status === 404)
+  check('other user cannot delete it', (await fetch(`${BASE}/api/media?id=${upJson.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${B.token}` } })).status === 404)
+  check('owner can delete it', (await fetch(`${BASE}/api/media?id=${upJson.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${A.token}` } })).status === 200)
+  check('deleted item is gone', (await fetch(`${BASE}/api/media?id=${upJson.id}`, { headers: { Authorization: `Bearer ${A.token}` } })).status === 404)
+
+  check('assistant requires a token', (await call(null, 'POST', '/api/assistant', { messages: [{ role: 'user', content: 'hi' }] })).status === 401)
+  const cfg = await call(A.token, 'GET', '/api/assistant')
+  check('assistant reports whether it is configured', typeof cfg.json?.configured === 'boolean')
+  if (!cfg.json?.configured) {
+    const na = await call(A.token, 'POST', '/api/assistant', { messages: [{ role: 'user', content: 'hi' }] })
+    check('assistant answers 503 ASSISTANT_NOT_CONFIGURED without an API key (no fake reply)', na.status === 503 && na.json?.code === 'ASSISTANT_NOT_CONFIGURED', JSON.stringify(na.json))
+  }
+
   if (process.env.TEST_RATE_LIMIT === '1') {
     console.log('\n[13] Rate limiting (opt-in: blocks this client for up to a minute afterwards)')
     let limited = 0

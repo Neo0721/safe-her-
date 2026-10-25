@@ -15,6 +15,8 @@ import {
   Info,
   MapPin,
   Palette,
+  IdCard,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
@@ -28,6 +30,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
 import { apiJson, errorMessage } from "@/lib/api-fetch"
+import { localStore } from "@/lib/native/local-store"
 import type { Profile } from "@/lib/auth-actions"
 import { initialsOf } from "@/lib/utils"
 
@@ -168,6 +171,25 @@ export default function ProfilePage() {
         <FadeIn delay={0.1}>
           <SectionCard title="Safety">
             <LinkRow icon={Users} label="My circle" href="/contacts" tone="gradient-primary" />
+            {localStore.available() && (
+              <button
+                type="button"
+                onClick={() => localStore.openEmergencyCard().catch((e) => toast.error(errorMessage(e, "Could not open the Emergency Card.")))}
+                className="flex min-h-14 w-full items-center justify-between gap-3 py-2 text-left active:opacity-70"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl gradient-danger">
+                    <IdCard className="size-4.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">Emergency card</span>
+                    <span className="block truncate text-xs text-muted-foreground">Native screen, works offline</span>
+                  </span>
+                </div>
+                <ChevronRight className="size-4.5 shrink-0 text-muted-foreground" />
+              </button>
+            )}
+            <LinkRow icon={Sparkles} label="Insights & battery forecast" href="/insights" tone="gradient-sky" />
             <LinkRow icon={Bell} label="SOS settings & quick trigger" href="/sos-settings" tone="gradient-warm" />
             <LinkRow icon={MapPin} label="Permissions" href="/permissions" tone="gradient-sky" />
             <LinkRow icon={Info} label="How SafeHer works" href="/how-it-works" tone="gradient-success" />

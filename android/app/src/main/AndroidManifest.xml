@@ -23,7 +23,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+
         </activity>
+
+        <!-- Second, fully native screen (XML layouts) that reads the on-device SQLite mirror; works offline. -->
+        <activity
+            android:name=".EmergencyCardActivity"
+            android:label="@string/title_emergency_card"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:exported="false" />
 
         <!-- Listens for rapid power-button presses (screen on/off toggles) when the user enables the quick trigger. -->
         <service
@@ -32,7 +41,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Emergency SOS trigger: counts rapid power-button presses chosen by the user" />
+                android:value="Emergency SOS trigger: counts rapid power-button presses and, if the user opts in, watches the accelerometer for a fall check-in" />
         </service>
 
         <receiver
@@ -66,6 +75,12 @@
     <!-- Optional audio recording during an SOS (only if enabled in SOS settings). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Evidence photos and the emergency-card scanner: the system camera / photo picker. Optional hardware; no storage permission needed. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
 
     <!-- Power-button quick trigger: foreground service, alert notification, haptics, restart after reboot. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

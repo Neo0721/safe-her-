@@ -3,6 +3,9 @@ import { isNativeApp } from '@/lib/platform'
 
 const REQUEST_TIMEOUT_MS = 15000
 
+/** Fired after the app changes the user's profile or contacts, so the on-phone copy can be refreshed. */
+export const DATA_CHANGED_EVENT = 'safeher:data-changed'
+
 /** An API failure with a message that is safe to show to the user. */
 export class ApiError extends Error {
   constructor(
@@ -92,6 +95,10 @@ export async function apiJson<T = unknown>(
   if (!response.ok) {
     const body = (data ?? {}) as { error?: string; code?: string }
     throw new ApiError(response.status, body.error || `Request failed (${response.status}).`, body.code)
+  }
+  const method = (init.method ?? 'GET').toUpperCase()
+  if (method !== 'GET' && /^\/api\/(contacts|profile)(\/|\?|$)/.test(path) && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(DATA_CHANGED_EVENT))
   }
   return data as T
 }

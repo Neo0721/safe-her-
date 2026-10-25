@@ -19,6 +19,20 @@ final class TriggerPrefs {
         return prefs(c).getBoolean("enabled", false);
     }
 
+    /** Opt-in fall / impact check-in (accelerometer). */
+    static boolean motionEnabled(Context c) {
+        return prefs(c).getBoolean("motionEnabled", false);
+    }
+
+    static void setMotionEnabled(Context c, boolean enabled) {
+        prefs(c).edit().putBoolean("motionEnabled", enabled).apply();
+    }
+
+    /** True when the foreground service has anything to do. */
+    static boolean anyEnabled(Context c) {
+        return isEnabled(c) || motionEnabled(c);
+    }
+
     static int presses(Context c) {
         return prefs(c).getInt("presses", DEFAULT_PRESSES);
     }

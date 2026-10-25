@@ -17,10 +17,21 @@ interface MapViewProps {
   /** Pixels at the bottom covered by an overlay (e.g. a bottom sheet); the position is centred in the visible part. */
   bottomInset?: number
   showZoom?: boolean
+  /** A chosen destination, drawn as a flag-style marker (used by navigation). */
+  destination?: { lat: number; lng: number; label?: string } | null
+  /** Called with the tapped coordinates (used to pick a destination on the map). */
+  onMapClick?: (point: { lat: number; lng: number }) => void
+  /** Zoom the camera to show the whole route (and the destination) when it changes. */
+  fitRoute?: boolean
 }
 
 /** Leaflet + OpenStreetMap map showing a real position, an accuracy circle and an optional route. */
-export function MapView({ latitude, longitude, accuracy, path, follow = true, markerLabel = 'You are here', bottomInset = 0, showZoom = true }: MapViewProps) {
+export function MapView({ latitude, longitude, accuracy, path, follow = true, markerLabel = 'You are here', bottomInset = 0, showZoom = true, destination = null, onMapClick, fitRoute = false }: MapViewProps) {
+  const destRef = useRef<Leaflet.CircleMarker | null>(null)
+  const clickRef = useRef(onMapClick)
+  useEffect(() => {
+    clickRef.current = onMapClick
+  })
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Leaflet.Map | null>(null)
   const markerRef = useRef<Leaflet.CircleMarker | null>(null)
@@ -81,6 +92,7 @@ export function MapView({ latitude, longitude, accuracy, path, follow = true, ma
     tiles.on('tileerror', () => setTilesFailed(true))
     tiles.on('tileload', () => setTilesFailed(false))
     tiles.addTo(map)
+    map.on('click', (e: Leaflet.LeafletMouseEvent) => clickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }))
     mapRef.current = map
 
     // Keep tiles correct when the WebView resizes (keyboard, rotation, bottom sheets).
@@ -94,6 +106,7 @@ export function MapView({ latitude, longitude, accuracy, path, follow = true, ma
       markerRef.current = null
       circleRef.current = null
       routeRef.current = null
+      destRef.current = null
       firstFixRef.current = true
     }
   }, [ready, shouldExist, showZoom])
@@ -151,12 +164,39 @@ export function MapView({ latitude, longitude, accuracy, path, follow = true, ma
     if (path && path.length > 1) {
       const line = L.polyline(
         path.map((p) => [p.lat, p.lng] as [number, number]),
-        { color: '#ef4444', weight: 4, opacity: 0.85 },
+        { color: destination ? '#7c3aed' : '#ef4444', weight: 5, opacity: 0.85 },
       ).addTo(map)
       routeRef.current = line
-      if (!hasPosition) map.fitBounds(line.getBounds(), { padding: [24, 24] })
+      if (!hasPosition) map.fitBounds(line.getBounds(), { padding: [32, 32] })
     }
-  }, [path, hasPosition, ready, latitude, longitude])
+  }, [path, hasPosition, ready, latitude, longitude, destination])
+
+  // Camera: show the whole route once when it (not the GPS fix) changes.
+  useEffect(() => {
+    const L = libRef.current
+    const map = mapRef.current
+    if (!fitRoute || !L || !map || !path || path.length < 2) return
+    map.fitBounds(L.latLngBounds(path.map((p) => [p.lat, p.lng] as [number, number])), { padding: [48, 48] })
+  }, [path, fitRoute, ready, shouldExist])
+
+  // Destination marker.
+  useEffect(() => {
+    const L = libRef.current
+    const map = mapRef.current
+    if (!L || !map) return
+    destRef.current?.remove()
+    destRef.current = null
+    if (!destination) return
+    destRef.current = L.circleMarker([destination.lat, destination.lng], {
+      radius: 10,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: '#ef4444',
+      fillOpacity: 1,
+    })
+      .addTo(map)
+      .bindTooltip(destination.label || 'Destination')
+  }, [destination, ready, shouldExist])
 
   if (failed) {
     return <MapPlaceholder text={failed} />

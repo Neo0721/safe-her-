@@ -111,6 +111,20 @@ const BASE_SCHEMA = `
     FOREIGN KEY (firebase_uid) REFERENCES users(firebase_uid) ON DELETE CASCADE,
     FOREIGN KEY (sos_event_id) REFERENCES sos_events(id) ON DELETE CASCADE
   );
+
+  -- Photos / audio / video the user explicitly chose to upload. Bytes live on disk (data/media), metadata here.
+  -- Every row is scoped to the verified Firebase uid; nothing is uploaded automatically.
+  CREATE TABLE IF NOT EXISTS media_items (
+    id TEXT PRIMARY KEY,
+    firebase_uid TEXT NOT NULL,
+    sos_event_id TEXT,
+    kind TEXT NOT NULL CHECK(kind IN ('photo', 'audio', 'video')),
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    file_name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (firebase_uid) REFERENCES users(firebase_uid) ON DELETE CASCADE
+  );
 `
 
 const INDEXES = `
@@ -148,12 +162,30 @@ function migrate(db) {
   if (!hasColumn(db, 'sos_settings', 'power_presses')) {
     db.exec('ALTER TABLE sos_settings ADD COLUMN power_presses INTEGER NOT NULL DEFAULT 5')
   }
-  // How an SOS was started: 'hold' (on-screen button) or 'power' (power-button trigger).
+  // How an SOS was started: 'hold' (on-screen button), 'power' (power-button trigger) or
+  // 'motion' (the user confirmed a fall / impact check-in alert).
   if (!hasColumn(db, 'sos_events', 'trigger_source')) {
     db.exec("ALTER TABLE sos_events ADD COLUMN trigger_source TEXT NOT NULL DEFAULT 'hold'")
   }
+  // Opt-in sensor-based fall / impact check-in (rule-based, on-device).
+  if (!hasColumn(db, 'sos_settings', 'motion_detection')) {
+    db.exec('ALTER TABLE sos_settings ADD COLUMN motion_detection INTEGER NOT NULL DEFAULT 0')
+  }
+
+  // Video evidence: a CHECK constraint cannot be altered in place, so databases created before
+  // video support get the table rebuilt (rows are copied unchanged; media files are untouched).
+  const mediaDef = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'media_items'").get()
+  if (mediaDef && !mediaDef.sql.includes("'video'")) {
+    db.transaction(() => {
+      db.exec('ALTER TABLE media_items RENAME TO media_items_old')
+      db.exec(BASE_SCHEMA.match(/CREATE TABLE IF NOT EXISTS media_items \([\s\S]*?\n  \);/)[0].replace('IF NOT EXISTS ', ''))
+      db.exec('INSERT INTO media_items SELECT id, firebase_uid, sos_event_id, kind, mime_type, size_bytes, file_name, created_at FROM media_items_old')
+      db.exec('DROP TABLE media_items_old')
+    })()
+  }
 
   db.exec(INDEXES)
+  db.exec('CREATE INDEX IF NOT EXISTS idx_media_uid ON media_items(firebase_uid, created_at DESC)')
 }
 
 module.exports = { migrate, resolveDbPath }

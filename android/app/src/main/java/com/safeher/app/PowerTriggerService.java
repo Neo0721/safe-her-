@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -35,11 +36,18 @@ public class PowerTriggerService extends Service {
 
     public static final String ACTION_START = "com.safeher.app.action.START_TRIGGER";
     public static final String ACTION_SOS = "com.safeher.app.action.SOS_TRIGGERED";
+    /** The user tapped "Get help" on a fall check-in. Opens the emergency screen; nobody is contacted. */
+    public static final String ACTION_MOTION = "com.safeher.app.action.MOTION_CONFIRMED";
+    /** The user tapped "I'm OK" on a fall check-in. */
+    public static final String ACTION_MOTION_OK = "com.safeher.app.action.MOTION_OK";
     public static final String CHANNEL_PROTECTION = "protection";
     public static final String CHANNEL_ALERT = "sos_alert";
+    public static final String CHANNEL_CHECKIN = "safety_checkin";
+    public static final String CHANNEL_STATUS = "protection_status";
 
     private static final int NOTIF_PROTECTION = 4101;
     private static final int NOTIF_ALERT = 4102;
+    private static final int NOTIF_CHECKIN = 4104;
     /** Ignore further triggers for a while so one burst can never fire twice. */
     private static final long COOLDOWN_MS = 20_000L;
 
@@ -48,6 +56,7 @@ public class PowerTriggerService extends Service {
     private final ArrayDeque<Long> presses = new ArrayDeque<>();
     private long lastTriggerAt = 0L;
     private BroadcastReceiver screenReceiver;
+    private MotionAnomalyDetector motion;
 
     public static boolean isRunning() {
         return running;
@@ -61,20 +70,38 @@ public class PowerTriggerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (!TriggerPrefs.isEnabled(this)) {
+        if (intent != null && ACTION_MOTION_OK.equals(intent.getAction())) {
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(NOTIF_CHECKIN);
+            if (!running) {
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+            return START_STICKY;
+        }
+
+        boolean powerOn = TriggerPrefs.isEnabled(this);
+        boolean motionOn = TriggerPrefs.motionEnabled(this);
+        if (!powerOn && !motionOn) {
             // Disabled while the service was being (re)started: do not keep a stale notification.
+            stopMotion();
+            unregisterScreenReceiver();
             stopForegroundCompat();
             stopSelf();
             return START_NOT_STICKY;
         }
-        startAsForeground();
-        registerScreenReceiver();
+        startAsForeground(powerOn, motionOn);
+        if (powerOn) registerScreenReceiver();
+        else unregisterScreenReceiver();
+        if (motionOn) startMotion();
+        else stopMotion();
         running = true;
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        stopMotion();
         unregisterScreenReceiver();
         running = false;
         super.onDestroy();
@@ -201,16 +228,87 @@ public class PowerTriggerService extends Service {
         }
     }
 
+    // ---------------------------------------------------------------- fall / impact check-in
+
+    private void startMotion() {
+        if (motion != null) return;
+        SensorManager sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        if (sm == null) return;
+        MotionAnomalyDetector detector = new MotionAnomalyDetector(this::showFallCheckIn);
+        if (detector.start(sm)) {
+            motion = detector;
+        } else {
+            Log.w(TAG, "no accelerometer available; fall check-in is inactive");
+        }
+    }
+
+    private void stopMotion() {
+        if (motion == null) return;
+        motion.stop();
+        motion = null;
+    }
+
+    /**
+     * The detector saw a fall-like impact followed by stillness. This only asks the user whether they
+     * are OK. It never calls, texts, or starts an SOS by itself: the user chooses "Get help".
+     */
+    private void showFallCheckIn(String explanation) {
+        Log.i(TAG, "fall check-in raised: " + explanation);
+        vibrate();
+
+        Intent help = new Intent(this, MainActivity.class)
+                .setAction(ACTION_MOTION)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent helpPending = PendingIntent.getActivity(
+                this, 3, help, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent okPending = PendingIntent.getService(
+                this, 4, new Intent(this, PowerTriggerService.class).setAction(ACTION_MOTION_OK),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent openPending = PendingIntent.getActivity(
+                this, 5, new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        Notification n = new NotificationCompat.Builder(this, CHANNEL_CHECKIN)
+                .setSmallIcon(R.drawable.ic_stat_sos)
+                .setContentTitle("Are you OK?")
+                .setContentText("SafeHer noticed a fall-like impact followed by stillness.")
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(
+                        "SafeHer noticed a fall-like impact followed by stillness (" + explanation + "). "
+                                + "Nothing has been sent to anyone. Tap Get help to open the emergency screen."))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setContentIntent(openPending)
+                .addAction(0, "I'm OK", okPending)
+                .addAction(0, "Get help", helpPending)
+                .setAutoCancel(true)
+                .setTimeoutAfter(5 * 60_000L)
+                .build();
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (nm != null) {
+            try {
+                nm.notify(NOTIF_CHECKIN, n);
+            } catch (SecurityException e) {
+                Log.w(TAG, "notification not permitted", e);
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- foreground notification
 
-    private void startAsForeground() {
+    private void startAsForeground(boolean powerOn, boolean motionOn) {
         Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pending = PendingIntent.getActivity(
                 this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        StringBuilder text = new StringBuilder();
+        if (powerOn) text.append("Press the power button ").append(TriggerPrefs.presses(this)).append(" times quickly to start an SOS.");
+        if (powerOn && motionOn) text.append(' ');
+        if (motionOn) text.append("Fall check-in is on (it only asks if you are OK).");
         Notification n = new NotificationCompat.Builder(this, CHANNEL_PROTECTION)
                 .setSmallIcon(R.drawable.ic_stat_sos)
-                .setContentTitle("SafeHer quick trigger is on")
-                .setContentText("Press the power button " + TriggerPrefs.presses(this) + " times quickly to start an SOS.")
+                .setContentTitle(powerOn && motionOn ? "SafeHer protection is on" : powerOn ? "SafeHer quick trigger is on" : "SafeHer fall check-in is on")
+                .setContentText(text.toString())
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(text.toString()))
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setOngoing(true)
@@ -249,5 +347,18 @@ public class PowerTriggerService extends Service {
         alert.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         alert.enableVibration(true);
         nm.createNotificationChannel(alert);
+
+        NotificationChannel checkin = new NotificationChannel(
+                CHANNEL_CHECKIN, "Fall check-ins", NotificationManager.IMPORTANCE_HIGH);
+        checkin.setDescription("Asks if you are OK after SafeHer detects a fall-like impact. It never contacts anyone.");
+        checkin.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        checkin.enableVibration(true);
+        nm.createNotificationChannel(checkin);
+
+        NotificationChannel status = new NotificationChannel(
+                CHANNEL_STATUS, "Protection status", NotificationManager.IMPORTANCE_DEFAULT);
+        status.setDescription("Tells you if Android paused SafeHer's background protection.");
+        status.setShowBadge(false);
+        nm.createNotificationChannel(status);
     }
 }

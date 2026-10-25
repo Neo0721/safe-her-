@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
     namespace = "com.safeher.app"
@@ -44,6 +45,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+    }
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
@@ -60,6 +67,18 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // On-device text recognition (Experiment 9). The recognition models are bundled in the APK,
+    // so scanning works offline and no image ever leaves the phone.
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+    implementation 'com.google.mlkit:text-recognition-devanagari:16.0.1'
+
+    // On-device image classification (bundled model) and the native Emergency Card screen.
+    implementation 'com.google.mlkit:image-labeling:17.0.9'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+
+    // Deferrable background work (Experiment 10): keeps the protection service healthy.
+    implementation 'androidx.work:work-runtime:2.10.0'
 }
 
 apply from: 'capacitor.build.gradle'

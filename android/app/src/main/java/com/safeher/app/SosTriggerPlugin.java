@@ -9,6 +9,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 
 import androidx.core.content.ContextCompat;
 
@@ -40,8 +42,7 @@ public class SosTriggerPlugin extends Plugin {
         Context ctx = getContext();
         TriggerPrefs.save(ctx, true, presses, Math.max(2000L, Math.min(windowMs, 10000L)));
         try {
-            ContextCompat.startForegroundService(
-                    ctx, new Intent(ctx, PowerTriggerService.class).setAction(PowerTriggerService.ACTION_START));
+            applyService(ctx);
         } catch (Exception e) {
             call.reject("Android did not allow the trigger service to start: " + e.getMessage(), "START_FAILED");
             return;
@@ -53,13 +54,60 @@ public class SosTriggerPlugin extends Plugin {
     public void stop(PluginCall call) {
         Context ctx = getContext();
         TriggerPrefs.save(ctx, false, TriggerPrefs.presses(ctx), TriggerPrefs.windowMs(ctx));
-        ctx.stopService(new Intent(ctx, PowerTriggerService.class));
-        call.resolve(statusObject(false));
+        try {
+            applyService(ctx); // keeps running only if the fall check-in is still on
+        } catch (Exception e) {
+            // Nothing useful to do: the power trigger is already switched off in the stored settings.
+        }
+        call.resolve(statusObject(PowerTriggerService.isRunning()));
+    }
+
+    /** Opt-in fall / impact check-in. Requires an accelerometer and the notification permission. */
+    @PluginMethod
+    public void setMotionDetection(PluginCall call) {
+        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        Context ctx = getContext();
+        if (enabled) {
+            if (!motionSensorAvailable()) {
+                call.reject("This device has no accelerometer, so fall check-in is not available.", "NO_SENSOR");
+                return;
+            }
+            if (!notificationsGranted()) {
+                call.reject("Notification permission is required so SafeHer can ask if you are OK.", "NOTIFICATIONS_DENIED");
+                return;
+            }
+        }
+        TriggerPrefs.setMotionEnabled(ctx, enabled);
+        try {
+            applyService(ctx);
+        } catch (Exception e) {
+            TriggerPrefs.setMotionEnabled(ctx, false);
+            call.reject("Android did not allow the background service to start: " + e.getMessage(), "START_FAILED");
+            return;
+        }
+        call.resolve(statusObject(PowerTriggerService.isRunning()));
     }
 
     @PluginMethod
     public void status(PluginCall call) {
         call.resolve(statusObject(PowerTriggerService.isRunning()));
+    }
+
+    /** Starts or stops the foreground service and its WorkManager health check to match the saved settings. */
+    private void applyService(Context ctx) {
+        if (TriggerPrefs.anyEnabled(ctx)) {
+            ContextCompat.startForegroundService(
+                    ctx, new Intent(ctx, PowerTriggerService.class).setAction(PowerTriggerService.ACTION_START));
+            ProtectionCheckWorker.Companion.schedule(ctx);
+        } else {
+            ctx.stopService(new Intent(ctx, PowerTriggerService.class));
+            ProtectionCheckWorker.Companion.cancel(ctx);
+        }
+    }
+
+    private boolean motionSensorAvailable() {
+        SensorManager sm = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+        return sm != null && sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null;
     }
 
     // ------------------------------------------------------------------ permissions / settings
@@ -116,9 +164,9 @@ public class SosTriggerPlugin extends Plugin {
     // ------------------------------------------------------------------ trigger delivery
 
     /** Called by MainActivity when the service launched the app. Retained until JS is listening. */
-    void dispatchTrigger() {
+    void dispatchTrigger(String source) {
         JSObject data = new JSObject();
-        data.put("source", "power");
+        data.put("source", source);
         data.put("at", System.currentTimeMillis());
         notifyListeners("sosTriggered", data, true);
     }
@@ -137,6 +185,8 @@ public class SosTriggerPlugin extends Plugin {
         o.put("running", running);
         o.put("presses", TriggerPrefs.presses(ctx));
         o.put("notificationsGranted", notificationsGranted());
+        o.put("motionEnabled", TriggerPrefs.motionEnabled(ctx));
+        o.put("motionSensorAvailable", motionSensorAvailable());
 
         PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
         o.put("batteryUnrestricted", pm != null && pm.isIgnoringBatteryOptimizations(ctx.getPackageName()));

@@ -19,6 +19,8 @@ data/*.db
 data/*.db-journal
 data/*.db-wal
 data/*.db-shm
+# Uploaded evidence (photos / audio / video): user data, never commit
+data/media/
 .env.test
 android/app/google-services.json
 android/.gradle

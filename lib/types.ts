@@ -16,6 +16,7 @@ export interface SosSettings {
   notify_contacts: number
   power_trigger: number
   power_presses: number
+  motion_detection: number
 }
 
 export interface SosEvent {

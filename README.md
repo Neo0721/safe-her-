@@ -14,6 +14,12 @@ It prioritises **honest behaviour over simulation**: it never claims a call conn
 - **Drills**: practice the full flow; nobody is contacted.
 - **Readiness check**: the home screen scores location permission, circle, network and battery from real device state.
 - **Accounts**: Firebase Email/Password and Google; profile, blood group, language.
+- **Emergency card** (Android, native screen): a second Activity built from XML layouts that reads an on-device SQLite copy of your profile and circle, so it opens with no network (long-press the app icon, or Profile).
+- **Evidence**: photos, short video and audio you choose to upload, plus download/share. **Safe route**: walking directions and nearby police, hospitals and pharmacies. **Card scanner**: on-device OCR and photo labelling.
+- **Insights**: a content-based tip recommender and a battery-drain forecast (linear regression on real readings), with opt-in smart alerts.
+- **Safety assistant**: Gemini behind a server proxy (needs `GEMINI_API_KEY`), with a built-in fixed-text guide when it is unavailable.
+
+How each feature maps to the course tasks, and what is and is not verified: [docs/FEATURE_MAP.md](docs/FEATURE_MAP.md).
 
 ## Architecture
 
@@ -81,6 +87,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): environment, Docker, HTTPS, health
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run lint` | ESLint |
 | `npm run db:init` / `db:inspect` / `db:backup` | Create/migrate, inspect and back up the SQLite DB |
+| `npm run test:insights` | Unit tests for the recommender and battery regression (Node 22.6+) |
 | `npm run test:api` | End-to-end API tests: auth, per-user isolation, SOS lifecycle, power trigger, pagination, limits (needs the Auth Emulator) |
 | `npx cap sync android` | Sync Capacitor config/plugins into `android/` |
 | `cd android && ./gradlew assembleDebug` / `lint` / `bundleRelease` | Debug APK / Android lint / Play Store bundle |
@@ -104,7 +111,9 @@ The emulator hook is ignored when `NODE_ENV=production`, so emulator tokens are 
 ## Known limitations
 
 - Location tracking and SOS updates run only while the app is on screen (no background location service).
-- Audio recording is kept in memory only (not uploaded) and needs an HTTPS server.
+- Audio and video evidence are uploaded only when you press Upload (8 MB limit per file); recording audio in the browser needs an HTTPS server.
+- The on-device copy (Emergency card, offline contacts) is read-only and refreshed whenever the app is online; edits need a connection.
+- Battery forecasts and smart alerts only run while the app is open, and need about 15 minutes of unplugged readings.
 - The app needs the server to load; offline it shows a connection-error page with an emergency-call button. An in-progress SOS keeps working when the connection drops.
 - The power-button trigger is best-effort on Android (OEM battery savers can stop it); see its doc.
 - Email verification and server-shared rate limiting are not implemented. SQLite means a single server instance.

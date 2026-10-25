@@ -49,7 +49,9 @@ export async function POST(request: Request) {
   if (typeof id !== 'string' || !ID_PATTERN.test(id)) return apiError(400, 'Invalid SOS event id.')
   const isTest = body.is_test === true
   const source = body.source === undefined ? 'hold' : body.source
-  if (source !== 'hold' && source !== 'power') return apiError(400, 'source must be "hold" or "power".')
+  if (source !== 'hold' && source !== 'power' && source !== 'motion') {
+    return apiError(400, 'source must be "hold", "power" or "motion".')
+  }
 
   const hasFix = body.latitude !== undefined && body.latitude !== null
   if (hasFix && !validLatLng(body.latitude, body.longitude)) return apiError(400, 'Invalid coordinates.')
@@ -80,7 +82,7 @@ export async function POST(request: Request) {
            VALUES (?, ?, ?, ?, ?, ?)`
         ).run(uid, id, body.latitude, body.longitude, accuracy, now)
       }
-      log(uid, isTest ? 'SOS Drill Started' : 'SOS Started', isTest ? 'Practice drill. No contacts were contacted.' : source === 'power' ? 'SOS activated with the power-button trigger' : 'SOS activated by user')
+      log(uid, isTest ? 'SOS Drill Started' : 'SOS Started', isTest ? 'Practice drill. No contacts were contacted.' : source === 'power' ? 'SOS activated with the power-button trigger' : source === 'motion' ? 'SOS started after the user confirmed a fall / impact check-in' : 'SOS activated by user')
     })()
 
     return NextResponse.json(db.prepare('SELECT * FROM sos_events WHERE id = ?').get(id), { status: 201 })

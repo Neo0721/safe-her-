@@ -32,9 +32,10 @@ export function PowerTriggerBridge() {
     let off: (() => void) | undefined
     let cancelled = false
     void powerTrigger
-      .onTriggered(() => {
+      .onTriggered((event) => {
+        const source = event?.source === 'motion' ? 'motion' : 'power'
         if (signedInRef.current) {
-          routerRef.current.push('/emergency?start=1&source=power')
+          routerRef.current.push(`/emergency?start=1&source=${source}`)
         } else {
           toast.error('SOS was triggered, but you are signed out. Call your emergency number or sign in.')
           routerRef.current.replace('/login')
@@ -55,6 +56,7 @@ export function PowerTriggerBridge() {
     if (!powerTrigger.available()) return
     if (!uid) {
       void powerTrigger.stop()
+      void powerTrigger.setMotionDetection(false)
       return
     }
     let cancelled = false
@@ -63,8 +65,9 @@ export function PowerTriggerBridge() {
         if (cancelled) return
         if (settings.power_trigger === 1) await powerTrigger.start(settings.power_presses)
         else await powerTrigger.stop()
+        await powerTrigger.setMotionDetection(settings.motion_detection === 1)
       })
-      .catch((error) => console.warn('Power trigger not applied:', (error as Error).message))
+      .catch((error) => console.warn('Protection settings not applied:', (error as Error).message))
     return () => {
       cancelled = true
     }

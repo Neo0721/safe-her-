@@ -16,6 +16,7 @@ interface SettingsRow {
   notify_contacts: number
   power_trigger: number
   power_presses: number
+  motion_detection: number
   updated_at: string
 }
 
@@ -66,7 +67,7 @@ export async function PUT(request: Request) {
     if (!POWER_PRESSES.includes(presses)) return apiError(400, 'power_presses must be 3, 4, 5 or 6.')
 
     const merged: Record<string, 0 | 1> = {}
-    for (const key of ['location_sharing', 'audio_recording', 'notify_contacts', 'power_trigger'] as const) {
+    for (const key of ['location_sharing', 'audio_recording', 'notify_contacts', 'power_trigger', 'motion_detection'] as const) {
       const flag = body[key] === undefined ? (current[key] as 0 | 1) : toFlag(body[key])
       if (flag === null) return apiError(400, `${key} must be a boolean.`)
       merged[key] = flag
@@ -76,9 +77,9 @@ export async function PUT(request: Request) {
     db.prepare(
       `UPDATE sos_settings
        SET hold_duration = ?, location_sharing = ?, audio_recording = ?, notify_contacts = ?,
-           power_trigger = ?, power_presses = ?, updated_at = ?
+           power_trigger = ?, power_presses = ?, motion_detection = ?, updated_at = ?
        WHERE firebase_uid = ?`
-    ).run(hold, merged.location_sharing, merged.audio_recording, merged.notify_contacts, merged.power_trigger, presses, now, uid)
+    ).run(hold, merged.location_sharing, merged.audio_recording, merged.notify_contacts, merged.power_trigger, presses, merged.motion_detection, now, uid)
 
     db.prepare(
       `INSERT INTO activity_logs (id, firebase_uid, type, title, detail, created_at)

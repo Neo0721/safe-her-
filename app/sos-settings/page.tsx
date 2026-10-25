@@ -10,6 +10,7 @@ import {
   Navigation,
   PhoneCall,
   Power,
+  Activity,
   Rocket,
   ShieldAlert,
   Smartphone,
@@ -43,6 +44,7 @@ export default function SosSettingsPage() {
   const [contactShortcuts, setContactShortcuts] = useState(true)
   const [powerOn, setPowerOn] = useState(false)
   const [powerPresses, setPowerPresses] = useState(5)
+  const [motionOn, setMotionOn] = useState(false)
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -63,6 +65,7 @@ export default function SosSettingsPage() {
       setContactShortcuts(data.notify_contacts === 1)
       setPowerOn(data.power_trigger === 1)
       setPowerPresses(data.power_presses)
+      setMotionOn(data.motion_detection === 1)
       await refreshStatus()
     } catch (error) {
       setLoadError(errorMessage(error))
@@ -94,6 +97,21 @@ export default function SosSettingsPage() {
     setPowerOn(next)
   }
 
+  const toggleMotion = async (next: boolean) => {
+    if (next && native) {
+      if (triggerStatus && !triggerStatus.motionSensorAvailable) {
+        toast.error('This device has no accelerometer, so fall check-in is not available.')
+        return
+      }
+      const granted = await powerTrigger.ensurePermission().catch(() => false)
+      if (!granted) {
+        toast.error('Allow notifications so SafeHer can ask if you are OK after a fall.')
+        return
+      }
+    }
+    setMotionOn(next)
+  }
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -106,6 +124,7 @@ export default function SosSettingsPage() {
           notify_contacts: contactShortcuts,
           power_trigger: powerOn,
           power_presses: powerPresses,
+          motion_detection: motionOn,
         },
       })
       setHoldSeconds(saved.hold_duration)
@@ -115,8 +134,9 @@ export default function SosSettingsPage() {
         try {
           if (saved.power_trigger === 1) await powerTrigger.start(saved.power_presses)
           else await powerTrigger.stop()
+          await powerTrigger.setMotionDetection(saved.motion_detection === 1)
         } catch (error) {
-          toast.error(`Saved, but the trigger could not start: ${errorMessage(error)}`)
+          toast.error(`Saved, but the background trigger could not start: ${errorMessage(error)}`)
           await refreshStatus()
           return
         }
@@ -279,6 +299,36 @@ export default function SosSettingsPage() {
               <SettingsToggle icon={Navigation} tone="sky" label="Save live location" description="Store your GPS position in your history while an SOS runs" checked={locationSharing} onCheckedChange={setLocationSharing} />
               <SettingsToggle icon={PhoneCall} tone="success" label="Call & SMS shortcuts" description="Show buttons that open your dialer or SMS app for each contact" checked={contactShortcuts} onCheckedChange={setContactShortcuts} />
               <SettingsToggle icon={Mic} tone="warm" label="Record audio" description="Record with the microphone during an SOS. Kept in memory only, never uploaded" checked={audioRecording} onCheckedChange={setAudioRecording} />
+            </section>
+          </FadeIn>
+
+          {/* Sensor check-in (Experiment 10) */}
+          <FadeIn delay={0.12}>
+            <section className="surface rounded-3xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Activity className="size-5 text-primary" />
+                    <h2 className="font-serif text-xl font-semibold">Fall & impact check-in</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Rule-based check: looks for free fall, an impact, then stillness using the accelerometer. It{' '}
+                    <strong>only asks if you are OK</strong> with a notification; it never contacts anyone unless you choose{' '}
+                    <em>Get help</em>.
+                  </p>
+                </div>
+                <Switch
+                  checked={motionOn}
+                  disabled={native && triggerStatus !== null && !triggerStatus.motionSensorAvailable}
+                  onCheckedChange={(v) => void toggleMotion(v)}
+                  aria-label="Enable fall and impact check-in"
+                />
+              </div>
+              {native && triggerStatus && !triggerStatus.motionSensorAvailable && (
+                <p className="mt-3 rounded-xl bg-muted p-2.5 text-xs text-muted-foreground">
+                  This device does not report an accelerometer.
+                </p>
+              )}
             </section>
           </FadeIn>
 

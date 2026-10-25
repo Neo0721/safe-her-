@@ -1,7 +1,7 @@
 'use client'
 
 import { Plus, ShieldAlert, Users } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { AppShell } from '@/components/app-shell'
 import { ContactCard } from '@/components/contact-card'
@@ -11,7 +11,8 @@ import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
-import { apiJson, errorMessage } from '@/lib/api-fetch'
+import { ApiError, apiJson, errorMessage } from '@/lib/api-fetch'
+import { localStore } from '@/lib/native/local-store'
 import type { Contact, Priority } from '@/lib/types'
 import { cn, initialsOf } from '@/lib/utils'
 
@@ -36,21 +37,31 @@ export default function ContactsPage() {
 
   const { user } = useAuth()
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [fromPhoneCopy, setFromPhoneCopy] = useState<number | null>(null)
 
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
     try {
       setContacts(await apiJson<Contact[]>('/api/contacts'))
       setLoadError(null)
+      setFromPhoneCopy(null)
     } catch (error) {
-      setLoadError(errorMessage(error, 'Could not load your contacts.'))
+      // Offline: show the copy saved on this phone (read-only) instead of an empty error screen.
+      const snapshot = error instanceof ApiError && error.isNetwork && user ? await localStore.read() : null
+      if (snapshot && snapshot.owner === user?.uid && snapshot.contacts.length > 0) {
+        setContacts(snapshot.contacts.map((c) => ({ ...c, email: null, priority: c.priority as Priority })))
+        setFromPhoneCopy(snapshot.syncedAt)
+        setLoadError(null)
+      } else {
+        setLoadError(errorMessage(error, 'Could not load your contacts.'))
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   useEffect(() => {
     if (user) void fetchContacts()
-  }, [user])
+  }, [user, fetchContacts])
 
   const openAdd = () => {
     setEditing(null)
@@ -143,6 +154,16 @@ export default function ContactsPage() {
         </div>
       ) : contacts.length > 0 ? (
         <Stagger className="mt-4 space-y-3">
+          {fromPhoneCopy !== null && (
+            <div role="status" className="flex items-center justify-between gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-3 text-xs">
+              <p className="min-w-0 text-pretty">
+                You are offline. Showing the copy saved on this phone{fromPhoneCopy ? ` (synced ${new Date(fromPhoneCopy).toLocaleString()})` : ''}. Editing needs a connection.
+              </p>
+              <button type="button" onClick={() => { setLoading(true); void fetchContacts() }} className="min-h-11 shrink-0 px-2 font-semibold text-primary">
+                Retry
+              </button>
+            </div>
+          )}
           {contacts.map((contact) => (
             <StaggerItem key={contact.id}>
               <ContactCard

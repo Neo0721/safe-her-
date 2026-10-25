@@ -57,7 +57,8 @@ function EmergencyScreen() {
 
   const wantsStart = params.get('start') === '1'
   const wantsDrill = params.get('drill') === '1'
-  const source: 'hold' | 'power' = params.get('source') === 'power' ? 'power' : 'hold'
+  const rawSource = params.get('source')
+  const source: 'hold' | 'power' | 'motion' = rawSource === 'power' ? 'power' : rawSource === 'motion' ? 'motion' : 'hold'
 
   const [sosId, setSosId] = useState<string | null>(null)
   const [isDrill, setIsDrill] = useState(wantsDrill)
@@ -93,7 +94,7 @@ function EmergencyScreen() {
   const recordedRef = useRef(false) // true once the server has this SOS event
   const flushingRef = useRef(false)
   const isDrillRef = useRef(wantsDrill)
-  const sourceRef = useRef<'hold' | 'power'>(source)
+  const sourceRef = useRef<'hold' | 'power' | 'motion'>(source)
   const settingsRef = useRef<SosSettings | null>(null)
 
   // This screen is always dark: match the status-bar strip and force light status-bar icons.
@@ -424,6 +425,12 @@ function EmergencyScreen() {
           <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white/90">
             <Zap className="size-3.5" />
             Power-button trigger
+          </span>
+        )}
+        {source === 'motion' && !isDrill && (
+          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white/90">
+            <Zap className="size-3.5" />
+            Fall check-in confirmed
           </span>
         )}
       </div>

@@ -33,8 +33,8 @@ const nextConfig = {
     const common = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      // Camera is never used; location and microphone only by SafeHer itself.
-      { key: 'Permissions-Policy', value: 'geolocation=(self), microphone=(self), camera=()' },
+      // Camera, microphone, and location scoped to SafeHer self origin.
+      { key: 'Permissions-Policy', value: 'geolocation=(self), microphone=(self), camera=(self)' },
     ]
     if (process.env.NODE_ENV === 'production') {
       common.push({ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' })

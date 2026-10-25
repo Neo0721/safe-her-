@@ -49,6 +49,7 @@ RUN mkdir -p /app/data && chown node:node /app/data
 VOLUME ["/app/data"]
 USER node
 EXPOSE 3000
+# Hosts such as Render set PORT (e.g. 10000) and expect the app to listen on it; default to 3000 otherwise.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["sh", "-c", "exec npx next start -H 0.0.0.0 -p ${PORT:-3000}"]

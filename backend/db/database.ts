@@ -3,15 +3,19 @@ import path from 'path'
 import fs from 'fs'
 import { migrate, resolveDbPath } from './schema.cjs'
 
-const DB_PATH = resolveDbPath()
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
+// `next build` imports every route in several worker processes just to analyse them. They must not
+// all open (and switch to WAL) the real file at once: that races with "database is locked", and it
+// would also leave an empty database inside a Docker image. Nothing is read or written at build time.
+const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build'
+const DB_PATH = IS_BUILD ? ':memory:' : resolveDbPath()
+if (!IS_BUILD) fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
 
 // Reuse one connection across hot reloads in development.
 const globalForDb = globalThis as unknown as { __safeherDb?: Database.Database }
 
 function open(): Database.Database {
-  const conn = new Database(DB_PATH)
-  conn.pragma('journal_mode = WAL')
+  const conn = new Database(DB_PATH, { timeout: 10_000 })
+  if (!IS_BUILD) conn.pragma('journal_mode = WAL')
   conn.pragma('foreign_keys = ON')
   migrate(conn)
   return conn

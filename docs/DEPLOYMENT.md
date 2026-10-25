@@ -44,6 +44,8 @@ docker run -d --name safeher -p 3000:3000 -v safeher-data:/app/data \
   -e NEXT_PUBLIC_FIREBASE_PROJECT_ID=... safeher
 ```
 
+The container listens on `$PORT` if the host sets one (Render uses 10000), otherwise 3000.
+
 Put a reverse proxy (Caddy / nginx / a cloud load balancer) in front for **HTTPS**, and have it send `X-Forwarded-For` (the rate limiter keys on it). Release builds of the Android app only allow HTTPS. Evidence uploads are up to 8 MB, so allow at least that in the proxy (nginx: `client_max_body_size 9m;`; Caddy and most cloud load balancers allow it by default).
 
 ## 3. Operations
